@@ -1,6 +1,4 @@
 (in-package :snav)
 
-(defun run ()
-  "Run the program."
-  "TODO"
-  )
+(defun show-wmctrl-help ()
+  (r-to-values (run-cmd "wmctrl --help") :strip-data? t))

@@ -33,10 +33,12 @@
     :new-r
     :succeeded?
     :failed?
+    :r-to-values
     :*log-format-time*
     :logm
     :*SIGINT*
     :handle-signal
+    :run-cmd
     ))
 
 (defpackage :snav

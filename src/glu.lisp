@@ -176,7 +176,7 @@
       (eq obj (empty (type-of obj)))))
 ;;; Empty ----------------------------------------------------------------------
 
-;;; Validation
+;;; Validation -----------------------------------------------------------------
 (defparameter levels '(:success 2
                        :info 1
                        :debug 0
@@ -205,7 +205,15 @@
 (defun failed? (obj)
   "Determine whether OBJ represents a 'failed' object."
   (not (succeeded? obj)))
-;;; Validation
+
+(defun r-to-values (result &key strip-data?)
+  "Take the give `result` and return it as tuple of it's data and original
+   `result`."
+  (if (r-p result)
+    (if strip-data?
+      (values (r-data result) (new-r (r-level result) (r-message result)))
+      (values (r-data result) result))))
+;;; Validation -----------------------------------------------------------------
 
 ;;; Logging --------------------------------------------------------------------
 (defvar *log-format-time*
@@ -275,4 +283,22 @@
           (push trimmed-arg parsed)))
       (incf i))
     parsed))
+
+
+(defun run-cmd (cmd)
+  "Run command specified by `CMD'.
+   A result object is returned."
+  (multiple-value-bind (std-out std-err ret-val)
+      (uiop:run-program cmd
+                        :ignore-error-status t
+                        :output '(:string :stripped t)
+                        :error-output '(:string :stripped t))
+    (if (zerop ret-val)
+        (new-r :success "" std-out)
+        (new-r :error
+               (sf "ERROR ~A: ~A"
+                   ret-val
+                   (if (and (empty? std-out) (empty? std-err))
+                       "unknown (cmd reported no info)"
+                       (or std-err std-out)))))))
 ;;; Terminal -------------------------------------------------------------------
