@@ -12,15 +12,6 @@
   "Go to workspace number `num` (1-based index)."
   (r-to-values (run-cmd (sf "wmctrl -s ~A" (max 0 (1- (or num 1)))))))
 
-(defun go-to-next-workspace ()
-  "Go to the next ordinal workspace."
-  (let* ((workspaces (parse-workspaces)))
-    (dolist (workspace workspaces)
-      (if (workspace-active? workspace)
-        (if (>= (workspace-num workspace) (length workspaces))
-          (go-to-workspace 1)
-          (go-to-workspace (1+ (workspace-num workspace))))))))
-
 (defun parse-workspaces ()
   "Create `workspace` structs from `wmctrl -d` command."
   (let* ((list-workspaces-cmd-r (run-cmd "wmctrl -d"))
@@ -39,3 +30,21 @@
                                 :name "todo")
                 workspaces))))
     (nreverse workspaces)))
+
+(defun go-to-next-workspace ()
+  "Go to the next ordinal workspace."
+  (let* ((workspaces (parse-workspaces)))
+    (dolist (workspace workspaces)
+      (if (workspace-active? workspace)
+        (if (>= (workspace-num workspace) (length workspaces))
+          (go-to-workspace 1)
+          (go-to-workspace (1+ (workspace-num workspace))))))))
+
+(defun go-to-previous-workspace ()
+  "Go to the previous ordinal workspace."
+  (let* ((workspaces (parse-workspaces)))
+    (dolist (workspace workspaces)
+      (if (workspace-active? workspace)
+        (if (= 1 (workspace-num workspace))
+          (go-to-workspace (length workspaces))
+          (go-to-workspace (1- (workspace-num workspace))))))))
