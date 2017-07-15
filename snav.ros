@@ -1,0 +1,50 @@
+#!/bin/sh
+#|-*- mode:lisp -*-|#
+#|
+exec ros -Q -- $0 "$@"
+|#
+
+#|
+Command-line interface for snav
+|#
+
+(declaim (optimize (safety 1) (speed 3)))
+
+(ros:ensure-asdf)
+(ql:quickload '(snav) :silent nil)
+
+(defpackage :snav-cli
+  (:documentation "Command-line interface for snav")
+  (:use :cl :glu))
+(in-package :snav-cli)
+
+(defun show-help ()
+  (format t "~&Usage: snav [options]
+             
+snav is a screen a window navigator for X
+
+Options:
+
+  --debug, -d
+    Whether to run the app in debug mode. Default is non-debug mode.
+    Specifying this option will:
+    * Increase logging verbosity
+    * Initiate the debugger on exeptions
+    * Show additional Lisp errors
+
+  --help, -h
+    Show this message
+
+  --version, -v
+    Show version information
+"))
+
+(defun main (&rest args)
+  (when (or (string-equal "-h" (first args))
+            (string-equal "--help" (first args)))
+    (show-help)
+    (return-from main 0))
+
+  (format t "TODO: build CLI~%")
+  0)
+;;; vim: set ft=lisp lisp:
