@@ -36,24 +36,25 @@ Options:
   go-to-previous-workspace
     Go to the previous ordinal workspace (wrap to last if on first)
 
+  help, --help, -h
+    Show this message
+
+  version, --version, -v
+    Show version information
+
   --debug, -d
     Whether to run the app in debug mode. Default is non-debug mode.
     Specifying this option will:
     * Increase logging verbosity
     * Initiate the debugger on exeptions
     * Show additional Lisp errors
-
-  --help, -h
-    Show this message
-
-  --version, -v
-    Show version information
 "))
 
 (defun main (&rest args)
   (when (or (empty? args)
             (string-equal "-h" (first args))
-            (string-equal "--help" (first args)))
+            (string-equal "--help" (first args))
+            (string-equal "help" (first args)))
     (show-help)
     (return-from main 0))
 
