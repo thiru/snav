@@ -15,7 +15,8 @@ Command-line interface for snav
 
 (defpackage :snav-cli
   (:documentation "Command-line interface for snav")
-  (:use :cl :glu))
+  (:use :cl :glu :snav))
+
 (in-package :snav-cli)
 
 (defun show-help ()
@@ -24,6 +25,16 @@ Command-line interface for snav
 snav is a screen a window navigator for X
 
 Options:
+
+  go-to-workspace <NUM>
+    Go to the specified workspace (1-based index).
+    Giving 0 will go to the first workspace.
+
+  go-to-next-workspace
+    Go to the next ordinal workspace (wrap to first if on last)
+
+  go-to-previous-workspace
+    Go to the previous ordinal workspace (wrap to last if on first)
 
   --debug, -d
     Whether to run the app in debug mode. Default is non-debug mode.
@@ -40,11 +51,18 @@ Options:
 "))
 
 (defun main (&rest args)
-  (when (or (string-equal "-h" (first args))
+  (when (or (empty? args)
+            (string-equal "-h" (first args))
             (string-equal "--help" (first args)))
     (show-help)
     (return-from main 0))
 
-  (format t "TODO: build CLI~%")
+  (cond ((string-equal "go-to-workspace" (first args))
+         (go-to-workspace (loose-parse-int (second args))))
+        ((string-equal "go-to-next-workspace" (first args))
+         (go-to-next-workspace))
+        ((string-equal "go-to-previous-workspace" (first args))
+         (go-to-previous-workspace))
+        (t (show-help)))
   0)
 ;;; vim: set ft=lisp lisp:

@@ -45,5 +45,7 @@
   (:use :cl :glu :split-sequence :uiop)
   (:documentation "Sole package of 'screen navigator'")
   (:export
-    :run
+    :go-to-workspace
+    :go-to-next-workspace
+    :go-to-previous-workspace
     ))
