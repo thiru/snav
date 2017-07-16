@@ -1,5 +1,6 @@
 (in-package :snav)
 
+;;; Structs --------------------------------------------------------------------
 (defstruct app-info
   (name "snav")
   (debug-mode? nil)
@@ -11,7 +12,9 @@
   (num 0 :type integer)
   (active? nil)
   (name "" :type string))
+;;; Structs ====================================================================
 
+;;; Init -----------------------------------------------------------------------
 (defun create-app-info ()
   "Initialise the app."
   (let* ((app-dir (asdf:system-source-directory :snav))
@@ -24,11 +27,9 @@
                      (file-write-date version-file-path)))))
 
 (defvar *app-info* (create-app-info))
+;;; Init =======================================================================
 
-(defun go-to-workspace (num)
-  "Go to workspace number `num` (1-based index)."
-  (r-to-values (run-cmd (sf "wmctrl -s ~A" (max 0 (1- (or num 1)))))))
-
+;;; Helper Functions -----------------------------------------------------------
 (defun parse-workspaces ()
   "Create `workspace` structs from `wmctrl -d` command."
   (let* ((list-workspaces-cmd-r (run-cmd "wmctrl -d"))
@@ -38,15 +39,25 @@
          (curr-workspace-active? nil))
     (if (succeeded? list-workspaces-cmd-r)
       (progn
-        (setf workspace-lines (split-sequence #\linefeed (r-data list-workspaces-cmd-r)))
+        (setf workspace-lines
+              (split-sequence #\linefeed (r-data list-workspaces-cmd-r)))
         (dolist (line workspace-lines)
-          (setf curr-workspace-num (1+ (loose-parse-int (cl-ppcre:scan-to-strings "^\\d+" line))))
-          (setf curr-workspace-active? (string-equal " * " (cl-ppcre:scan-to-strings " [\\-\\*] " line)))
+          (setf curr-workspace-num
+                (1+ (loose-parse-int (cl-ppcre:scan-to-strings "^\\d+" line))))
+          (setf curr-workspace-active?
+                (string-equal " * "
+                              (cl-ppcre:scan-to-strings " [\\-\\*] " line)))
           (push (make-workspace :num curr-workspace-num
                                 :active? curr-workspace-active?
                                 :name "todo")
                 workspaces))))
     (nreverse workspaces)))
+;;; Helper Functions ===========================================================
+
+;;; Public Functions -----------------------------------------------------------
+(defun go-to-workspace (num)
+  "Go to workspace number `num` (1-based index)."
+  (r-to-values (run-cmd (sf "wmctrl -s ~A" (max 0 (1- (or num 1)))))))
 
 (defun go-to-next-workspace ()
   "Go to the next ordinal workspace."
@@ -65,3 +76,4 @@
         (if (= 1 (workspace-num workspace))
           (go-to-workspace (length workspaces))
           (go-to-workspace (1- (workspace-num workspace))))))))
+;;; Public Functions ===========================================================
