@@ -128,6 +128,22 @@
     (if (>= days 1)
       (format t "~:D day~:P " days))
     (format t "~2,'0D:~2,'0D:~2,'0D.~2,'0D.~%" hours minutes seconds millis)))
+
+
+(defun pretty-time (time)
+  "Formats a date/time to a user-friendly form. TIME is expected to either be a
+   timestamp readable by LOCAL-TIME, or a LOCAL-TIME:TIMESTAMP object."
+  (if (empty? time)
+      ""
+      (let* ((format-desc '())
+             (timestamp (if (stringp time)
+                            (parse-timestring time)
+                            time)))
+
+        (setf format-desc '(:short-weekday " " :short-month " " :day " "
+                            :year ", " :hour12 ":" (:min 2) " " :ampm))
+
+        (format-timestring nil timestamp :format format-desc))))
 ;;; Generic Utils --------------------------------------------------------------
 
 ;;; Empty

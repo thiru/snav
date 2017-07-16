@@ -21,6 +21,7 @@
     :labeled-time
     :get-run-time
     :display-run-time
+    :pretty-time
     :empty/*objects*
     :empty
     :empty=>
@@ -42,9 +43,16 @@
     ))
 
 (defpackage :snav
-  (:use :cl :glu :split-sequence :uiop)
+  (:use :cl :glu :local-time :split-sequence :uiop)
   (:documentation "Sole package of 'screen navigator'")
   (:export
+    :app-info
+    :app-info-name
+    :app-info-debug-mode?
+    :app-info-app-dir
+    :app-info-version
+    :app-info-last-updated
+    :*app-info*
     :go-to-workspace
     :go-to-next-workspace
     :go-to-previous-workspace

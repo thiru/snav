@@ -1,9 +1,29 @@
 (in-package :snav)
 
+(defstruct app-info
+  (name "snav")
+  (debug-mode? nil)
+  (app-dir "")
+  (version "")
+  (last-updated ""))
+
 (defstruct workspace
   (num 0 :type integer)
   (active? nil)
   (name "" :type string))
+
+(defun create-app-info ()
+  "Initialise the app."
+  (let* ((app-dir (asdf:system-source-directory :snav))
+         (version-file-path (asdf:system-relative-pathname :snav "version")))
+    (make-app-info :debug-mode? nil
+                   :app-dir app-dir 
+                   :version (asdf::read-file-form version-file-path)
+                   :last-updated
+                   (universal-to-timestamp
+                     (file-write-date version-file-path)))))
+
+(defvar *app-info* (create-app-info))
 
 (defun go-to-workspace (num)
   "Go to workspace number `num` (1-based index)."

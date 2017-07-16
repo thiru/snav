@@ -20,7 +20,9 @@ Command-line interface for snav
 (in-package :snav-cli)
 
 (defun show-help ()
-  (format t "~&Usage: snav [options]
+  (format t "~&snav (Screen Navigator) v~A (~A)
+
+Usage: snav [options]
              
 snav is a screen a window navigator for X
 
@@ -50,22 +52,32 @@ Options:
     * Increase logging verbosity
     * Initiate the debugger on exeptions
     * Show additional Lisp errors
-"))
+" (app-info-version *app-info*) (pretty-time (app-info-last-updated *app-info*))))
 
 (defun main (&rest args)
-  (when (or (empty? args)
-            (string-equal "-h" (first args))
-            (string-equal "--help" (first args))
-            (string-equal "help" (first args)))
-    (show-help)
-    (return-from main 0))
-
-  (cond ((string-equal "go-to-workspace" (first args))
-         (go-to-workspace (loose-parse-int (second args))))
-        ((string-equal "go-to-next-workspace" (first args))
-         (go-to-next-workspace))
-        ((string-equal "go-to-previous-workspace" (first args))
-         (go-to-previous-workspace))
-        (t (show-help)))
-  0)
+  (let* ((ret-code 0))
+    (cond ((or (empty? args)
+               (string-equal "-h" (first args))
+               (string-equal "--help" (first args))
+               (string-equal "help" (first args)))
+           (show-help))
+          ((or (string-equal "-v" (first args))
+               (string-equal "--version" (first args))
+               (string-equal "version" (first args)))
+           (format t "snav version ~A (updated ~A)~%"
+                   (app-info-version *app-info*)
+                   (pretty-time (app-info-last-updated *app-info*))))
+          ((string-equal "go-to-workspace" (first args))
+           (go-to-workspace (loose-parse-int (second args))))
+          ((string-equal "go-to-next-workspace" (first args))
+           (go-to-next-workspace))
+          ((string-equal "go-to-previous-workspace" (first args))
+           (go-to-previous-workspace))
+          ((not (empty? args))
+           (format t
+                   "snav: '~A' is not a recognised command. See 'snav help'.~%"
+                   (first args))
+           (setf ret-code 1))
+          (t (show-help)))
+    ret-code))
 ;;; vim: set ft=lisp lisp:
