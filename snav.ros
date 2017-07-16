@@ -24,7 +24,7 @@ Command-line interface for snav
              
 snav is a screen a window navigator for X
 
-Options:
+Commands:
 
   go-to-workspace <NUM>
     Go to the specified workspace (1-based index).
@@ -41,6 +41,8 @@ Options:
 
   version, --version, -v
     Show version information
+
+Options:
 
   --debug, -d
     Whether to run the app in debug mode. Default is non-debug mode.
