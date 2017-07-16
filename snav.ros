@@ -38,6 +38,9 @@ Commands:
   go-to-previous-workspace
     Go to the previous ordinal workspace (wrap to last if on first)
 
+  go-to-last-active-workspace
+    Go to the last active workspace (default to 1)
+
   help, --help, -h
     Show this message
 
@@ -73,6 +76,8 @@ Options:
            (go-to-next-workspace))
           ((string-equal "go-to-previous-workspace" (first args))
            (go-to-previous-workspace))
+          ((string-equal "go-to-last-active-workspace" (first args))
+           (go-to-last-active-workspace))
           ((not (empty? args))
            (format t
                    "snav: '~A' is not a recognised command. See 'snav help'.~%"
