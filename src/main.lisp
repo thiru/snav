@@ -46,6 +46,12 @@
       (as-safe-workspace-num
         (1+ (loose-parse-int (last1 (split-string (r-data cmd-r)))))))))
 
+(defun get-workspace-count ()
+  "Get the total number of workspaces."
+  (let* ((cmd-r (run-cmd "xprop -root -notype _NET_NUMBER_OF_DESKTOPS")))
+    (if (succeeded? cmd-r)
+      (loose-parse-int (last1 (split-string (r-data cmd-r)))))))
+
 (defun parse-workspaces ()
   "Create `workspace` structs from `wmctrl -d` command."
   (let* ((list-workspaces-cmd-r (run-cmd "wmctrl -d"))
@@ -95,21 +101,18 @@
 
 (defun go-to-next-workspace ()
   "Go to the next ordinal workspace."
-  (let* ((workspaces (parse-workspaces)))
-    (dolist (workspace workspaces)
-      (if (workspace-active? workspace)
-        (if (>= (workspace-num workspace) (length workspaces))
-          (go-to-workspace 1)
-          (go-to-workspace (1+ (workspace-num workspace))))))))
+  (let* ((active-workspace-num (get-active-workspace-num))
+         (num-workspaces (get-workspace-count)))
+    (if (>= active-workspace-num num-workspaces)
+      (go-to-workspace 1)
+      (go-to-workspace (1+ active-workspace-num)))))
 
 (defun go-to-previous-workspace ()
   "Go to the previous ordinal workspace."
-  (let* ((workspaces (parse-workspaces)))
-    (dolist (workspace workspaces)
-      (if (workspace-active? workspace)
-        (if (= 1 (workspace-num workspace))
-          (go-to-workspace (length workspaces))
-          (go-to-workspace (1- (workspace-num workspace))))))))
+  (let* ((active-workspace-num (get-active-workspace-num)))
+    (if (= 1 active-workspace-num)
+      (go-to-workspace (get-workspace-count))
+      (go-to-workspace (1- active-workspace-num)))))
 
 (defun go-to-last-active-workspace ()
   "Go to the workspace that was active last (like cycling to the last active
