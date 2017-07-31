@@ -1,6 +1,7 @@
 (in-package :snav)
 
 ;;; Structs --------------------------------------------------------------------
+
 (defstruct app-info
   (name "snav")
   (debug-mode? nil)
@@ -13,9 +14,11 @@
   (num 0 :type integer)
   (active? nil)
   (name "" :type string))
+
 ;;; Structs ====================================================================
 
 ;;; Init -----------------------------------------------------------------------
+
 (defun create-app-info ()
   "Initialise the app."
   (let* ((app-dir (asdf:system-source-directory :snav))
@@ -31,9 +34,11 @@
                                      (temporary-directory)))))
 
 (defvar *app-info* (create-app-info))
+
 ;;; Init =======================================================================
 
 ;;; Helper Functions -----------------------------------------------------------
+
 (defun as-safe-workspace-num (num)
   (max 1 (or num 1)))
 
@@ -91,9 +96,11 @@
   (if (file-exists-p (app-info-tmp-file-path *app-info*))
     (asdf::read-file-form (app-info-tmp-file-path *app-info*))
     1))
+
 ;;; Helper Functions ===========================================================
 
 ;;; Public Functions -----------------------------------------------------------
+
 (defun go-to-workspace (num)
   "Go to workspace number `num` (1-based index)."
   (save-active-workspace-num (get-active-workspace-num))
@@ -118,4 +125,5 @@
   "Go to the workspace that was active last (like cycling to the last active
    window using ALT-TAB)."
   (go-to-workspace (get-last-active-workspace-num)))
+
 ;;; Public Functions ===========================================================
