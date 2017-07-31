@@ -63,7 +63,8 @@
          (workspace-lines '())
          (workspaces '())
          (curr-workspace-num 0)
-         (curr-workspace-active? nil))
+         (curr-workspace-active? nil)
+         (curr-workspace-name ""))
     (if (succeeded? list-workspaces-cmd-r)
       (progn
         (setf workspace-lines
@@ -74,9 +75,17 @@
           (setf curr-workspace-active?
                 (string-equal " * "
                               (cl-ppcre:scan-to-strings " [\\-\\*] " line)))
+          (setf curr-workspace-name
+                (multiple-value-bind
+                  (whole-match sub-matches)
+                  (cl-ppcre:scan-to-strings "^.+\\d+x\\d+  (.+)$" line)
+                  (declare (ignore whole-match))
+                  (if (plusp (length sub-matches))
+                    (aref sub-matches 0)
+                    "")))
           (push (make-workspace :num curr-workspace-num
                                 :active? curr-workspace-active?
-                                :name "todo")
+                                :name curr-workspace-name)
                 workspaces))))
     (nreverse workspaces)))
 
