@@ -15,6 +15,17 @@
   (active? nil)
   (name "" :type string))
 
+(defstruct window
+  (id "" :type string)
+  (pid 0 :type integer)
+  (name "" :type string) 
+  (workspace-num -1 :type integer)
+  (x-offset 0 :type integer)
+  (y-offset 0 :type integer)
+  (width 0 :type integer)
+  (height 0 :type integer)
+  (pc-name "" :type string))
+
 ;;; Structs ====================================================================
 
 ;;; Init -----------------------------------------------------------------------
@@ -57,19 +68,20 @@
     (if (succeeded? cmd-r)
       (loose-parse-int (last1 (split-string (r-data cmd-r)))))))
 
+;; NOTE: Not currently being used
 (defun parse-workspaces ()
   "Create `workspace` structs from `wmctrl -d` command."
   (let* ((list-workspaces-cmd-r (run-cmd "wmctrl -d"))
-         (workspace-lines '())
+         (cmd-output-lines '())
          (workspaces '())
          (curr-workspace-num 0)
          (curr-workspace-active? nil)
          (curr-workspace-name ""))
     (if (succeeded? list-workspaces-cmd-r)
       (progn
-        (setf workspace-lines
+        (setf cmd-output-lines
               (split-sequence #\linefeed (r-data list-workspaces-cmd-r)))
-        (dolist (line workspace-lines)
+        (dolist (line cmd-output-lines)
           (setf curr-workspace-num
                 (1+ (loose-parse-int (cl-ppcre:scan-to-strings "^\\d+" line))))
           (setf curr-workspace-active?
@@ -106,6 +118,50 @@
     (asdf::read-file-form (app-info-tmp-file-path *app-info*))
     1))
 
+(defun parse-windows (&key workspace-num)
+  "Create `window` structs from `wmctrl -l -p -G` command. The `-l` option
+   specifies to list window information. The `-p` option specifies to show
+   the PID of the window. The `-G` option specifies to show window geometry
+   (x/y offsets, width, height).
+   Stick windows and windows, windows with no size and the desktop pseudo
+   window are excluded.
+   If `workspace-num` is specified, only windows belonging to the respective
+   workspace is returned."
+  (let* ((list-windows-cmd-r (run-cmd "wmctrl -l -p -G"))
+         (cmd-output-lines '())
+         (curr-line-segs '())
+         (curr-window nil)
+         (windows '()))
+    (if (succeeded? list-windows-cmd-r)
+      (progn
+        (setf cmd-output-lines
+              (split-sequence #\linefeed (r-data list-windows-cmd-r)))
+        (dolist (line cmd-output-lines)
+          (setf curr-line-segs (cl-ppcre:split "\\s+" line))
+          (when (< 9 (length curr-line-segs))
+            (setf curr-window
+                  (make-window :id (nth 0 curr-line-segs)
+                               :workspace-num
+                               (1+ (loose-parse-int (nth 1 curr-line-segs)))
+                               :pid (loose-parse-int (nth 2 curr-line-segs))
+                               :x-offset (loose-parse-int (nth 3 curr-line-segs))
+                               :y-offset (loose-parse-int (nth 4 curr-line-segs))
+                               :width (loose-parse-int (nth 5 curr-line-segs))
+                               :height (loose-parse-int (nth 6 curr-line-segs))
+                               :pc-name (nth 7 curr-line-segs)
+                               :name
+                               (format nil
+                                       "~{~A~^ ~}"
+                                       (subseq curr-line-segs 8))))
+            (if (and (< 0 (window-workspace-num curr-window)) ; Sticky window
+                     (or (null workspace-num)
+                         (= workspace-num (window-workspace-num curr-window)))
+                     (not (string= "Desktop" (window-name curr-window)))
+                     (and (plusp (window-width curr-window))
+                          (plusp (window-height curr-window))))
+              (push curr-window windows))))))
+    (nreverse windows)))
+
 ;;; Helper Functions ===========================================================
 
 ;;; Public Functions -----------------------------------------------------------
@@ -113,7 +169,8 @@
 (defun go-to-workspace (num)
   "Go to workspace number `num` (1-based index)."
   (save-active-workspace-num (get-active-workspace-num))
-  (r-to-values (run-cmd (sf "wmctrl -s ~A" (1- (as-safe-wmctrl-workspace-num num))))))
+  (r-to-values (run-cmd (sf "wmctrl -s ~A"
+                            (1- (as-safe-wmctrl-workspace-num num))))))
 
 (defun go-to-next-workspace ()
   "Go to the next ordinal workspace."
