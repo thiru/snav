@@ -41,6 +41,9 @@ Commands:
   go-to-last-active-workspace
     Go to the last active workspace (default to 1)
 
+  focus-window <POSITION>
+    Focus the window specified by a relative position (up, down, left, right)
+
   help, --help, -h
     Show this message
 
@@ -78,6 +81,8 @@ Options:
            (go-to-previous-workspace))
           ((string-equal "go-to-last-active-workspace" (first args))
            (go-to-last-active-workspace))
+          ((string-equal "focus-window" (first args))
+           (focus-window (second args)))
           ((not (empty? args))
            (format t
                    "snav: '~A' is not a recognised command. See 'snav help'.~%"

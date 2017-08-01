@@ -40,6 +40,9 @@
     :*SIGINT*
     :handle-signal
     :run-cmd
+    :is-positive?
+    :is-non-negative?
+    :is-negative?
     ))
 
 (defpackage :snav
@@ -57,4 +60,5 @@
     :go-to-next-workspace
     :go-to-previous-workspace
     :go-to-last-active-workspace
+    :focus-window
     ))

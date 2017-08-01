@@ -144,6 +144,18 @@
                             :year ", " :hour12 ":" (:min 2) " " :ampm))
 
         (format-timestring nil timestamp :format format-desc))))
+
+(defmacro is-positive? (num)
+  "Determine whether `num` is a positive number."
+  `(<= 1 ,num))
+
+(defmacro is-non-negative? (num)
+  "Determine whether `num` is a non-negative number."
+  `(<= 0 ,num))
+
+(defmacro is-negative? (num)
+  "Determine whether `num` is a negative number."
+  `(>= -1 ,num))
 ;;; Generic Utils --------------------------------------------------------------
 
 ;;; Empty

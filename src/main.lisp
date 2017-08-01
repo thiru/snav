@@ -118,14 +118,14 @@
     (asdf::read-file-form (app-info-tmp-file-path *app-info*))
     1))
 
-(defun parse-windows (&key workspace-num)
+(defun list-windows (&key workspace)
   "Create `window` structs from `wmctrl -l -p -G` command. The `-l` option
    specifies to list window information. The `-p` option specifies to show
    the PID of the window. The `-G` option specifies to show window geometry
    (x/y offsets, width, height).
    Stick windows and windows, windows with no size and the desktop pseudo
    window are excluded.
-   If `workspace-num` is specified, only windows belonging to the respective
+   If `workspace` is specified, only windows belonging to the respective
    workspace is returned."
   (let* ((list-windows-cmd-r (run-cmd "wmctrl -l -p -G"))
          (cmd-output-lines '())
@@ -138,7 +138,7 @@
               (split-sequence #\linefeed (r-data list-windows-cmd-r)))
         (dolist (line cmd-output-lines)
           (setf curr-line-segs (cl-ppcre:split "\\s+" line))
-          (when (< 9 (length curr-line-segs))
+          (when (<= 9 (length curr-line-segs))
             (setf curr-window
                   (make-window :id (nth 0 curr-line-segs)
                                :workspace-num
@@ -154,8 +154,8 @@
                                        "~{~A~^ ~}"
                                        (subseq curr-line-segs 8))))
             (if (and (< 0 (window-workspace-num curr-window)) ; Sticky window
-                     (or (null workspace-num)
-                         (= workspace-num (window-workspace-num curr-window)))
+                     (or (null workspace)
+                         (= workspace (window-workspace-num curr-window)))
                      (not (string= "Desktop" (window-name curr-window)))
                      (and (plusp (window-width curr-window))
                           (plusp (window-height curr-window))))
@@ -191,5 +191,92 @@
   "Go to the workspace that was active last (like cycling to the last active
    window using ALT-TAB)."
   (go-to-workspace (get-last-active-workspace-num)))
+
+(defun focus-window (pos)
+  "Focus the window specified by the relative position, `pos` (i.e. up, down,
+   left, right)."
+  (let* ((get-focused-window-cmd-r
+           (run-cmd "xdotool getwindowfocus getwindowpid"))
+         (focused-window-pid -1)
+         (focused-window nil)
+         (focused-window-position -1)
+         (windows '())
+         (position-of-window-to-focus -1))
+
+    (if (failed? get-focused-window-cmd-r)
+      (return-from focus-window get-focused-window-cmd-r))
+
+    (setf focused-window-pid
+          (loose-parse-int (r-data get-focused-window-cmd-r)))
+
+    (cond (;; Focus UP window 
+           (string-equal "up" pos)
+           (setf windows (sort (list-windows
+                                 :workspace (get-active-workspace-num))
+                               #'<
+                               :key #'window-y-offset))
+           (setf focused-window
+                 (find focused-window-pid windows :key #'window-pid))
+           (setf focused-window-position (position focused-window windows))
+           (setf position-of-window-to-focus
+                 (if (zerop focused-window-position)
+                   0
+                   (1- focused-window-position))))
+
+          ;; Focus DOWN window
+          ((string-equal "down" pos)
+           (setf windows (sort (list-windows
+                                 :workspace (get-active-workspace-num))
+                               #'<
+                               :key #'window-y-offset))
+           (setf focused-window
+                 (find focused-window-pid windows :key #'window-pid))
+           (setf focused-window-position (position focused-window windows))
+           (setf position-of-window-to-focus
+                 (if (>= focused-window-position (1- (length windows)))
+                   (1- (length windows))
+                   (1+ focused-window-position))))
+
+          ;; Focus LEFT window 
+          ((string-equal "left" pos)
+           (setf windows (sort (list-windows
+                                 :workspace (get-active-workspace-num))
+                               #'<
+                               :key #'window-x-offset))
+           (setf focused-window
+                 (find focused-window-pid windows :key #'window-pid))
+           (setf focused-window-position (position focused-window windows))
+           (setf position-of-window-to-focus
+                 (if (zerop focused-window-position)
+                   0
+                   (1- focused-window-position))))
+
+          ;; Focus RIGHT window
+          ((string-equal "right" pos)
+           (setf windows (sort (list-windows
+                                 :workspace (get-active-workspace-num))
+                               #'<
+                               :key #'window-x-offset))
+           (setf focused-window
+                 (find focused-window-pid windows :key #'window-pid))
+           (setf focused-window-position (position focused-window windows))
+           (setf position-of-window-to-focus
+                 (if (>= focused-window-position (1- (length windows)))
+                   (1- (length windows))
+                   (1+ focused-window-position))))
+          ;; Illegal argument
+          (t (return-from
+               focus-window
+               (new-r :error
+                      (sf "Unrecognised relative window position '~A'" pos)))))
+
+    (if (is-negative? position-of-window-to-focus)
+      (return-from
+        focus-window
+        (new-r :error "Failed to determine position of window to focus.")))
+
+    (let* ((window-to-focus (nth position-of-window-to-focus windows))
+           (cmd (sf "wmctrl -i -a ~A" (window-id  window-to-focus))))
+      (run-cmd cmd))))
 
 ;;; Public Functions ===========================================================
