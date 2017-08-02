@@ -20,29 +20,21 @@ Command-line interface for snav
 (in-package :snav-cli)
 
 (defun show-help ()
-  (format t "~&snav (Screen Navigator) v~A (~A)
+  (format t "~&snav v~A (~A)
 
-Usage: snav [options]
+Usage: snav [options] command [args]
              
-snav is a screen a window navigator for X
+snav is a screen/workspace/window navigator for X
 
 Commands:
 
-  go-to-workspace <NUM>
-    Go to the specified workspace (1-based index).
-    Giving 0 will go to the first workspace.
+  workspace [<NUM> | prev | next | last]
+    <NUM> should be a positive integer
+    The 'prev' and 'next' commands wrap to the last and first workspace
+    The 'last' command goes to the last viewed workspace
 
-  go-to-next-workspace
-    Go to the next ordinal workspace (wrap to first if on last)
-
-  go-to-previous-workspace
-    Go to the previous ordinal workspace (wrap to last if on first)
-
-  go-to-last-active-workspace
-    Go to the last active workspace (default to 1)
-
-  focus-window <POSITION>
-    Focus the window specified by a relative position (up, down, left, right)
+  focus [up | down | left | right]
+    Focus the window specified by a relative position
 
   help, --help, -h
     Show this message
@@ -60,34 +52,57 @@ Options:
     * Show additional Lisp errors
 " (app-info-version *app-info*) (pretty-time (app-info-last-updated *app-info*))))
 
+(defun handle-snav-cmd-r (result)
+  (if (failed? result)
+    (progn
+      (format t "~A~%" (r-message result))
+      2)
+    0))
+
 (defun main (&rest args)
-  (let* ((ret-code 0))
-    (cond ((or (empty? args)
-               (string-equal "-h" (first args))
-               (string-equal "--help" (first args))
-               (string-equal "help" (first args)))
-           (show-help))
-          ((or (string-equal "-v" (first args))
-               (string-equal "--version" (first args))
-               (string-equal "version" (first args)))
-           (format t "snav version ~A (updated ~A)~%"
-                   (app-info-version *app-info*)
-                   (pretty-time (app-info-last-updated *app-info*))))
-          ((string-equal "go-to-workspace" (first args))
-           (go-to-workspace (loose-parse-int (second args))))
-          ((string-equal "go-to-next-workspace" (first args))
-           (go-to-next-workspace))
-          ((string-equal "go-to-previous-workspace" (first args))
-           (go-to-previous-workspace))
-          ((string-equal "go-to-last-active-workspace" (first args))
-           (go-to-last-active-workspace))
-          ((string-equal "focus-window" (first args))
-           (focus-window (second args)))
-          ((not (empty? args))
-           (format t
-                   "snav: '~A' is not a recognised command. See 'snav help'.~%"
-                   (first args))
-           (setf ret-code 1))
-          (t (show-help)))
-    ret-code))
+  (cond (;; Help
+         (or (empty? args)
+             (string-equal "-h" (first args))
+             (string-equal "--help" (first args))
+             (string-equal "help" (first args)))
+         (show-help))
+
+        ;; Version
+        ((or (string-equal "-v" (first args))
+             (string-equal "--version" (first args))
+             (string-equal "version" (first args)))
+         (format t "snav version ~A (updated ~A)~%"
+                 (app-info-version *app-info*)
+                 (pretty-time (app-info-last-updated *app-info*))))
+
+        ;; Workspaces navigation
+        ((string-equal "workspace" (first args))
+         (when (empty? (second args))
+           (format t "The 'workspace' command requires an argument. See 'snav help'.~%")
+           (return-from main 1))
+         (if (starts-with "prev" (second args))
+           (return-from main (handle-snav-cmd-r (go-to-previous-workspace))))
+         (if (string-equal "next" (second args))
+           (return-from main (handle-snav-cmd-r (go-to-next-workspace))))
+         (if (string-equal "last" (second args))
+           (return-from main (handle-snav-cmd-r (go-to-last-active-workspace))))
+         (return-from main
+                      (handle-snav-cmd-r
+                        (go-to-workspace (loose-parse-int (second args))))))
+
+        ;; Window focusing
+        ((string-equal "focus" (first args))
+         (when (empty? (second args))
+           (format t "The 'focus' command requires an argument. See 'snav help'.~%")
+           (return-from main 1))
+         (return-from main (handle-snav-cmd-r (focus-window (second args)))))
+        ((not (empty? args))
+         (format t
+                 "snav: '~A' is not a recognised command. See 'snav help'.~%"
+                 (first args))
+         (return-from main 1))
+
+        ;; Show help by default
+        (t (show-help)))
+  0)
 ;;; vim: set ft=lisp lisp:

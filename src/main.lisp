@@ -168,9 +168,11 @@
 
 (defun go-to-workspace (num)
   "Go to workspace number `num` (1-based index)."
+  (if (non-positive? num)
+    (return-from go-to-workspace (new-r :error
+                                        "Workspace must be a postive integer")))
   (save-active-workspace-num (get-active-workspace-num))
-  (r-to-values (run-cmd (sf "wmctrl -s ~A"
-                            (1- (as-safe-wmctrl-workspace-num num))))))
+  (run-cmd (sf "wmctrl -s ~A" (1- (as-safe-wmctrl-workspace-num num)))))
 
 (defun go-to-next-workspace ()
   "Go to the next ordinal workspace."
@@ -270,7 +272,7 @@
                (new-r :error
                       (sf "Unrecognised relative window position '~A'" pos)))))
 
-    (if (is-negative? position-of-window-to-focus)
+    (if (negative? position-of-window-to-focus)
       (return-from
         focus-window
         (new-r :error "Failed to determine position of window to focus.")))

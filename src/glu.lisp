@@ -145,15 +145,19 @@
 
         (format-timestring nil timestamp :format format-desc))))
 
-(defmacro is-positive? (num)
+(defmacro positive? (num)
   "Determine whether `num` is a positive number."
   `(<= 1 ,num))
 
-(defmacro is-non-negative? (num)
+(defmacro non-positive? (num)
+  "Determine whether `num` is a non-positive number."
+  `(>= 0 ,num))
+
+(defmacro non-negative? (num)
   "Determine whether `num` is a non-negative number."
   `(<= 0 ,num))
 
-(defmacro is-negative? (num)
+(defmacro negative? (num)
   "Determine whether `num` is a negative number."
   `(>= -1 ,num))
 ;;; Generic Utils --------------------------------------------------------------

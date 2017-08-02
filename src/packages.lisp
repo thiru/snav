@@ -40,9 +40,11 @@
     :*SIGINT*
     :handle-signal
     :run-cmd
-    :is-positive?
-    :is-non-negative?
-    :is-negative?
+    :positive?
+    :non-positive?
+    :non-negative?
+    :negative?
+    :starts-with
     ))
 
 (defpackage :snav
