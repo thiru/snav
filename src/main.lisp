@@ -222,7 +222,7 @@
            (setf focused-window-position (position focused-window windows))
            (setf position-of-window-to-focus
                  (if (zerop focused-window-position)
-                   0
+                   (1- (length windows))
                    (1- focused-window-position))))
 
           ;; Focus DOWN window
@@ -236,7 +236,7 @@
            (setf focused-window-position (position focused-window windows))
            (setf position-of-window-to-focus
                  (if (>= focused-window-position (1- (length windows)))
-                   (1- (length windows))
+                   0
                    (1+ focused-window-position))))
 
           ;; Focus LEFT window 
@@ -250,7 +250,7 @@
            (setf focused-window-position (position focused-window windows))
            (setf position-of-window-to-focus
                  (if (zerop focused-window-position)
-                   0
+                   (1- (length windows))
                    (1- focused-window-position))))
 
           ;; Focus RIGHT window
@@ -264,7 +264,7 @@
            (setf focused-window-position (position focused-window windows))
            (setf position-of-window-to-focus
                  (if (>= focused-window-position (1- (length windows)))
-                   (1- (length windows))
+                   0
                    (1+ focused-window-position))))
           ;; Illegal argument
           (t (return-from
