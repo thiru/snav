@@ -215,19 +215,21 @@
          (focused-window nil)
          (focused-window-position -1)
          (windows '())
-         (position-of-window-to-focus -1))
+         (position-of-window-to-focus -1)
+         (curr-workspace -1))
 
     (if (failed? get-focused-window-id-r)
       (return-from focus-window get-focused-window-id-r))
 
     (setf focused-window-id (r-data get-focused-window-id-r))
+    (setf curr-workspace (get-active-workspace-num))
 
     (cond (;; Focus UP window 
            (string-equal "up" pos)
-           (setf windows (sort (list-windows
-                                 :workspace (get-active-workspace-num))
-                               #'<
-                               :key #'window-y-offset))
+           (setf windows
+                 (stable-sort (list-windows :workspace curr-workspace)
+                              #'<
+                              :key #'window-y-offset))
            (setf focused-window
                  (find focused-window-id
                        windows
@@ -241,10 +243,10 @@
 
           ;; Focus DOWN window
           ((string-equal "down" pos)
-           (setf windows (sort (list-windows
-                                 :workspace (get-active-workspace-num))
-                               #'<
-                               :key #'window-y-offset))
+           (setf windows
+                 (stable-sort (list-windows :workspace curr-workspace)
+                              #'<
+                              :key #'window-y-offset))
            (setf focused-window
                  (find focused-window-id
                        windows
@@ -258,10 +260,10 @@
 
           ;; Focus LEFT window 
           ((string-equal "left" pos)
-           (setf windows (sort (list-windows
-                                 :workspace (get-active-workspace-num))
-                               #'<
-                               :key #'window-x-offset))
+           (setf windows
+                 (stable-sort (list-windows :workspace curr-workspace)
+                              #'<
+                              :key #'window-x-offset))
            (setf focused-window
                  (find focused-window-id
                        windows
@@ -275,10 +277,10 @@
 
           ;; Focus RIGHT window
           ((string-equal "right" pos)
-           (setf windows (sort (list-windows
-                                 :workspace (get-active-workspace-num))
-                               #'<
-                               :key #'window-x-offset))
+           (setf windows
+                 (stable-sort (list-windows :workspace curr-workspace)
+                              #'<
+                              :key #'window-x-offset))
            (setf focused-window
                  (find focused-window-id
                        windows
