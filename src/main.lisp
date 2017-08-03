@@ -181,7 +181,10 @@
   (if (non-positive? num)
     (return-from go-to-workspace (new-r :error
                                         "Workspace must be a postive integer")))
-  (save-active-workspace-num (get-active-workspace-num))
+  ;; Don't save last active workspace it is the same as the target, `num`
+  (let* ((active-workspace (get-active-workspace-num)))
+    (if (not (= num active-workspace))
+      (save-active-workspace-num active-workspace)))
   (run-cmd (sf "wmctrl -s ~A" (1- (as-safe-wmctrl-workspace-num num)))))
 
 (defun go-to-next-workspace ()
