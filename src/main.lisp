@@ -162,6 +162,16 @@
               (push curr-window windows))))))
     (nreverse windows)))
 
+(defun get-focused-window-id ()
+  "Get the id of the currently focused window in hexadecimal.
+   The final format of the number is intended to be compatible with wmctrl.
+   E.g.: 0x12345678."
+  (let* ((cmd-r (run-cmd "xdotool getwindowfocus")))
+    (if (failed? cmd-r)
+      cmd-r
+      (new-r :success "" (format nil "0x~8,'0X"
+                                 (loose-parse-int (r-data cmd-r)))))))
+
 ;;; Helper Functions ===========================================================
 
 ;;; Public Functions -----------------------------------------------------------
@@ -197,19 +207,17 @@
 (defun focus-window (pos)
   "Focus the window specified by the relative position, `pos` (i.e. up, down,
    left, right)."
-  (let* ((get-focused-window-cmd-r
-           (run-cmd "xdotool getwindowfocus getwindowpid"))
-         (focused-window-pid -1)
+  (let* ((get-focused-window-id-r (get-focused-window-id))
+         (focused-window-id "")
          (focused-window nil)
          (focused-window-position -1)
          (windows '())
          (position-of-window-to-focus -1))
 
-    (if (failed? get-focused-window-cmd-r)
-      (return-from focus-window get-focused-window-cmd-r))
+    (if (failed? get-focused-window-id-r)
+      (return-from focus-window get-focused-window-id-r))
 
-    (setf focused-window-pid
-          (loose-parse-int (r-data get-focused-window-cmd-r)))
+    (setf focused-window-id (r-data get-focused-window-id-r))
 
     (cond (;; Focus UP window 
            (string-equal "up" pos)
@@ -218,7 +226,10 @@
                                #'<
                                :key #'window-y-offset))
            (setf focused-window
-                 (find focused-window-pid windows :key #'window-pid))
+                 (find focused-window-id
+                       windows
+                       :key #'window-id
+                       :test #'string-equal))
            (setf focused-window-position (position focused-window windows))
            (setf position-of-window-to-focus
                  (if (zerop focused-window-position)
@@ -232,7 +243,10 @@
                                #'<
                                :key #'window-y-offset))
            (setf focused-window
-                 (find focused-window-pid windows :key #'window-pid))
+                 (find focused-window-id
+                       windows
+                       :key #'window-id
+                       :test #'string-equal))
            (setf focused-window-position (position focused-window windows))
            (setf position-of-window-to-focus
                  (if (>= focused-window-position (1- (length windows)))
@@ -246,7 +260,10 @@
                                #'<
                                :key #'window-x-offset))
            (setf focused-window
-                 (find focused-window-pid windows :key #'window-pid))
+                 (find focused-window-id
+                       windows
+                       :key #'window-id
+                       :test #'string-equal))
            (setf focused-window-position (position focused-window windows))
            (setf position-of-window-to-focus
                  (if (zerop focused-window-position)
@@ -260,7 +277,10 @@
                                #'<
                                :key #'window-x-offset))
            (setf focused-window
-                 (find focused-window-pid windows :key #'window-pid))
+                 (find focused-window-id
+                       windows
+                       :key #'window-id
+                       :test #'string-equal))
            (setf focused-window-position (position focused-window windows))
            (setf position-of-window-to-focus
                  (if (>= focused-window-position (1- (length windows)))
