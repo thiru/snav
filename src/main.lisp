@@ -213,11 +213,17 @@
 
 (defun show-windows ()
   "Show windows across all workspaces."
-  (let* ((windows '()))
+  (let* ((windows '())
+         (focused-win-cmd-r (get-focused-window-id)))
     (dolist (window (list-windows))
       (push (format nil
-                    "~A: ~A"
+                    "~A ~A ~A"
                     (window-workspace-num window)
+                    (if (and (succeeded? focused-win-cmd-r)
+                             (string-equal (r-data focused-win-cmd-r)
+                                           (window-id window)))
+                        "*"
+                        "-")
                     (window-name window))
             windows))
     (new-r :success "Successfully listed windows" (nreverse windows))))
