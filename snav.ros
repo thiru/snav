@@ -28,8 +28,9 @@ snav is a window, workspace and monitor navigator for X
 
 Commands:
 
-  show [win[dows] | mon[itors]]
+  show [win[dows] | work[spaces] | mon[itors]]
     'windows' shows visible windows across all workspaces
+    'workspaces' show all workspaces
     'monitors' shows connected monitors
 
   workspace [<NUM> | prev[ious] | next | last]
@@ -88,6 +89,10 @@ Options:
              (let* ((windows-cmd-r (show-windows)))
                (format t "~{~A~^~%~}" (r-data windows-cmd-r))
                (return-from main (handle-snav-cmd-r windows-cmd-r))))
+         (if (starts-with "work" (second args))
+             (let* ((workspaces-cmd-r (show-workspaces)))
+               (format t "~{~A~^~%~}" (r-data workspaces-cmd-r))
+               (return-from main (handle-snav-cmd-r workspaces-cmd-r))))
          (if (starts-with "mon" (second args))
              (let* ((monitors-cmd-r (show-monitors)))
                (format t "~{~A~^~%~}" (r-data monitors-cmd-r))

@@ -127,7 +127,7 @@
       (loose-parse-int (last1 (split-string (r-data cmd-r)))))))
 
 ;; NOTE: Not currently being used
-(defun parse-workspaces ()
+(defun list-workspaces ()
   "Create `workspace` structs from `wmctrl -d` command."
   (let* ((list-workspaces-cmd-r (run-cmd "wmctrl -d"))
          (cmd-output-lines '())
@@ -320,6 +320,18 @@
     (let* ((window-to-focus (nth position-of-window-to-focus windows))
            (cmd (sf "wmctrl -i -a ~A" (window-id  window-to-focus))))
       (run-cmd cmd))))
+
+(defun show-workspaces ()
+  "Show workspaces."
+  (let* ((workspaces '()))
+    (dolist (workspace (list-workspaces))
+      (push (format nil
+                    "~A ~A ~A"
+                    (workspace-num workspace)
+                    (if (workspace-active? workspace) "*" "-")
+                    (workspace-name workspace))
+            workspaces))
+    (new-r :success "Successfully listed workspaces" (nreverse workspaces))))
 
 (defun go-to-workspace (num)
   "Go to workspace number `num` (1-based index)."

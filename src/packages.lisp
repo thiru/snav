@@ -60,6 +60,7 @@
     :*app-info*
     :show-windows
     :focus-window
+    :show-workspaces
     :go-to-workspace
     :go-to-next-workspace
     :go-to-previous-workspace
