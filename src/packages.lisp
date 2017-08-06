@@ -63,4 +63,5 @@
     :go-to-previous-workspace
     :go-to-last-active-workspace
     :focus-window
+    :show-monitors
     ))

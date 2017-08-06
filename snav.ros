@@ -28,6 +28,9 @@ snav is a window, workspace and monitor navigator for X
 
 Commands:
 
+  show [monitors]
+    The 'monitors' command shows connected monitors
+
   workspace [<NUM> | prev | next | last]
     <NUM> should be a positive integer
     The 'prev' and 'next' commands wrap to the last and first workspace
@@ -74,6 +77,21 @@ Options:
          (format t "snav version ~A (updated ~A)~%"
                  (app-info-version *app-info*)
                  (pretty-time (app-info-last-updated *app-info*))))
+
+        ;; Show details
+        ((string-equal "show" (first args))
+         (when (empty? (second args))
+           (format t "The 'show' command requires an argument. See 'snav help'.~%")
+           (return-from main 1))
+         (if (string-equal "monitors" (second args))
+             (let* ((monitors-cmd-r (show-monitors)))
+               (dolist (monitor (r-data monitors-cmd-r))
+                 (format t "~A~%" monitor))
+               (return-from main (handle-snav-cmd-r monitors-cmd-r))))
+         (format t
+                 "snav: '~A' is not a recognised command. See 'snav help'.~%"
+                 (second args))
+         (return-from main 1))
 
         ;; Workspaces navigation
         ((string-equal "workspace" (first args))

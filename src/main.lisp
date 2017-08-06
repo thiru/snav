@@ -25,6 +25,13 @@
   (height 0 :type integer)
   (pc-name "" :type string))
 
+(defstruct monitor
+  (id "" :type string)
+  (width 0 :type integer)
+  (height 0 :type integer)
+  (x-offset 0 :type integer)
+  (y-offset 0 :type integer))
+
 ;;; Structs ====================================================================
 
 ;;; Init -----------------------------------------------------------------------
@@ -169,6 +176,37 @@
       (new-r :success "" (format nil "0x~8,'0X"
                                  (loose-parse-int (r-data cmd-r)))))))
 
+(defun list-monitors ()
+  "Get a list of monitors from `xrandr --current` command. The `--current`
+   option gets the current screen configuration without polling for hardware
+   changes."
+  (let* ((list-monitors-cmd-r (run-cmd "xrandr --current"))
+         (cmd-output-lines '())
+         (monitors '()))
+    (if (succeeded? list-monitors-cmd-r)
+        (progn
+          (setf cmd-output-lines
+                (split-sequence #\linefeed (r-data list-monitors-cmd-r)))
+          (dolist (line cmd-output-lines)
+            (multiple-value-bind
+              (whole-match sub-matches)
+              (cl-ppcre:scan-to-strings
+                "^(\\S+) connected (\\d+)x(\\d+)\\+(\\d+)\\+(\\d+)"
+                line)
+              (declare (ignore whole-match))
+              (when (= 5 (length sub-matches))
+                (push (make-monitor :id (aref sub-matches 0)
+                                    :width
+                                    (loose-parse-int (aref sub-matches 1))
+                                    :height
+                                    (loose-parse-int (aref sub-matches 2))
+                                    :x-offset
+                                    (loose-parse-int (aref sub-matches 3))
+                                    :y-offset
+                                    (loose-parse-int (aref sub-matches 4)))
+                      monitors))))))
+    (nreverse monitors)))
+
 ;;; Helper Functions ===========================================================
 
 ;;; Public Functions -----------------------------------------------------------
@@ -302,5 +340,18 @@
     (let* ((window-to-focus (nth position-of-window-to-focus windows))
            (cmd (sf "wmctrl -i -a ~A" (window-id  window-to-focus))))
       (run-cmd cmd))))
+
+(defun show-monitors ()
+  "Show connected monitors."
+  (let* ((monitors '()))
+    (dolist (monitor (list-monitors))
+      (push (format nil
+                    "~A ~Ax~A +~A,~A"
+                    (monitor-id monitor)
+                    (monitor-width monitor)
+                    (monitor-height monitor)
+                    (monitor-x-offset monitor)
+                    (monitor-y-offset monitor)) monitors))
+    (new-r :success "Successfully listed monitors" (nreverse monitors))))
 
 ;;; Public Functions ===========================================================
