@@ -65,8 +65,4 @@ I prefer to bind the snav commands to key-bindings via [sxhkd](https://github.co
 
 ## Building
 
-I prefer to use [roswell](https://github.com/roswell/roswell) to easily build an executable from source:
-
-    ros build snav.ros
-
-This is also how the releases are created.
+I prefer to use [roswell](https://github.com/roswell/roswell) to easily build an executable from source. The [build script](./build.sh) leverages this.
