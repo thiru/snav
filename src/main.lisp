@@ -5,7 +5,6 @@
 (defstruct app-info
   (name "snav")
   (debug-mode? nil)
-  (app-dir "")
   (version "")
   (last-updated "")
   (tmp-file-path ""))
@@ -32,10 +31,8 @@
 
 (defun create-app-info ()
   "Initialise the app."
-  (let* ((app-dir (asdf:system-source-directory :snav))
-         (version-file-path (asdf:system-relative-pathname :snav "version")))
+  (let* ((version-file-path (asdf:system-relative-pathname :snav "version")))
     (make-app-info :debug-mode? nil
-                   :app-dir app-dir 
                    :version (asdf::read-file-form version-file-path)
                    :last-updated
                    (universal-to-timestamp
