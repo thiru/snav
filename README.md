@@ -1,8 +1,8 @@
 # snav
 
-**snav** stands for screen navigator. It is a window, screen and workspace navigator for X.
+**snav** stands for screen navigator. It is a window, workspace and monitor navigator for X.
 
-The motivation for writing this app is so I could navigate windows, screens and workspaces as easily as with tiling window managers like [i3](https://github.com/i3/i3), [bspwm](https://github.com/baskerville/bspwm), etc. but without having to use one.
+The motivation for writing this app is so I could navigate windows, workspaces and monitors as easily as with tiling window managers like [i3](https://github.com/i3/i3), [bspwm](https://github.com/baskerville/bspwm), etc. but without having to use one.
 
 There's a lot to like about tiling window managers but I find there are also many drawbacks. E.g. there's a lot of extra things you need to setup manually that most desktop environments provide out-of-the-box (working with multiple monitors, a good panel, desktop themes, etc.). It's also generally difficult to work with and nagivate between floating windows. E.g. bspwm requires you to create explicit rules so that some windows behave as you'd expect (e.g. Team Viewer). And this process is tedious enough that I often just don't get around to it.
 
@@ -14,8 +14,8 @@ Perhaps my favourite thing about tiling window managers is how easy it is to tra
 * Navigate to a workspace by relative position (left, right)
 * Navigate to the last viewed workspace
 * Focus a window by relative position (up, down, left, right)
-* Focus a specific screen (by number) *NOT YET IMPLEMENTED*
-* Focus a screen by relative position (up, down, left, right) *NOT YET IMPLEMENTED*
+* Focus a specific monitor (by number) *NOT YET IMPLEMENTED*
+* Focus a monitor by relative position (up, down, left, right) *NOT YET IMPLEMENTED*
 
 ## Requirements
 

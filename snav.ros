@@ -24,7 +24,7 @@ Command-line interface for snav
 
 Usage: snav [options] command [args]
              
-snav is a screen/workspace/window navigator for X
+snav is a window, workspace and monitor navigator for X
 
 Commands:
 

@@ -4,7 +4,7 @@
 
 (asdf:defsystem :snav
   :version (:read-file-form "version")
-  :description "A window and workspace navigator for X"
+  :description "A window, workspace and monitor navigator for X"
   :author "Thirushanth Thirunavukarasu <thiru0130@gmail.com>"
   :license "GPLv3"
   :serial t
