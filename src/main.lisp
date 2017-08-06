@@ -54,6 +54,60 @@
 
 ;;; Helper Functions -----------------------------------------------------------
 
+(defun list-windows (&key workspace)
+  "Create `window` structs from `wmctrl -l -p -G` command. The `-l` option
+   specifies to list window information. The `-p` option specifies to show
+   the PID of the window. The `-G` option specifies to show window geometry
+   (x/y offsets, width, height).
+   Stick windows and windows, windows with no size and the desktop pseudo
+   window are excluded.
+   If `workspace` is specified, only windows belonging to the respective
+   workspace is returned."
+  (let* ((list-windows-cmd-r (run-cmd "wmctrl -l -p -G"))
+         (cmd-output-lines '())
+         (curr-line-segs '())
+         (curr-window nil)
+         (windows '()))
+    (if (succeeded? list-windows-cmd-r)
+      (progn
+        (setf cmd-output-lines
+              (split-sequence #\linefeed (r-data list-windows-cmd-r)))
+        (dolist (line cmd-output-lines)
+          (setf curr-line-segs (cl-ppcre:split "\\s+" line))
+          (when (<= 9 (length curr-line-segs))
+            (setf curr-window
+                  (make-window :id (nth 0 curr-line-segs)
+                               :workspace-num
+                               (1+ (loose-parse-int (nth 1 curr-line-segs)))
+                               :pid (loose-parse-int (nth 2 curr-line-segs))
+                               :x-offset (loose-parse-int (nth 3 curr-line-segs))
+                               :y-offset (loose-parse-int (nth 4 curr-line-segs))
+                               :width (loose-parse-int (nth 5 curr-line-segs))
+                               :height (loose-parse-int (nth 6 curr-line-segs))
+                               :pc-name (nth 7 curr-line-segs)
+                               :name
+                               (format nil
+                                       "~{~A~^ ~}"
+                                       (subseq curr-line-segs 8))))
+            (if (and (< 0 (window-workspace-num curr-window)) ; Sticky window
+                     (or (null workspace)
+                         (= workspace (window-workspace-num curr-window)))
+                     (not (string= "Desktop" (window-name curr-window)))
+                     (and (plusp (window-width curr-window))
+                          (plusp (window-height curr-window))))
+              (push curr-window windows))))))
+    (nreverse windows)))
+
+(defun get-focused-window-id ()
+  "Get the id of the currently focused window in hexadecimal.
+   The final format of the number is intended to be compatible with wmctrl.
+   E.g.: 0x12345678."
+  (let* ((cmd-r (run-cmd "xdotool getwindowfocus")))
+    (if (failed? cmd-r)
+      cmd-r
+      (new-r :success "" (format nil "0x~8,'0X"
+                                 (loose-parse-int (r-data cmd-r)))))))
+
 (defun as-safe-workspace-num (num)
   (max 1 (or num 1)))
 
@@ -122,60 +176,6 @@
     (asdf::read-file-form (app-info-tmp-file-path *app-info*))
     1))
 
-(defun list-windows (&key workspace)
-  "Create `window` structs from `wmctrl -l -p -G` command. The `-l` option
-   specifies to list window information. The `-p` option specifies to show
-   the PID of the window. The `-G` option specifies to show window geometry
-   (x/y offsets, width, height).
-   Stick windows and windows, windows with no size and the desktop pseudo
-   window are excluded.
-   If `workspace` is specified, only windows belonging to the respective
-   workspace is returned."
-  (let* ((list-windows-cmd-r (run-cmd "wmctrl -l -p -G"))
-         (cmd-output-lines '())
-         (curr-line-segs '())
-         (curr-window nil)
-         (windows '()))
-    (if (succeeded? list-windows-cmd-r)
-      (progn
-        (setf cmd-output-lines
-              (split-sequence #\linefeed (r-data list-windows-cmd-r)))
-        (dolist (line cmd-output-lines)
-          (setf curr-line-segs (cl-ppcre:split "\\s+" line))
-          (when (<= 9 (length curr-line-segs))
-            (setf curr-window
-                  (make-window :id (nth 0 curr-line-segs)
-                               :workspace-num
-                               (1+ (loose-parse-int (nth 1 curr-line-segs)))
-                               :pid (loose-parse-int (nth 2 curr-line-segs))
-                               :x-offset (loose-parse-int (nth 3 curr-line-segs))
-                               :y-offset (loose-parse-int (nth 4 curr-line-segs))
-                               :width (loose-parse-int (nth 5 curr-line-segs))
-                               :height (loose-parse-int (nth 6 curr-line-segs))
-                               :pc-name (nth 7 curr-line-segs)
-                               :name
-                               (format nil
-                                       "~{~A~^ ~}"
-                                       (subseq curr-line-segs 8))))
-            (if (and (< 0 (window-workspace-num curr-window)) ; Sticky window
-                     (or (null workspace)
-                         (= workspace (window-workspace-num curr-window)))
-                     (not (string= "Desktop" (window-name curr-window)))
-                     (and (plusp (window-width curr-window))
-                          (plusp (window-height curr-window))))
-              (push curr-window windows))))))
-    (nreverse windows)))
-
-(defun get-focused-window-id ()
-  "Get the id of the currently focused window in hexadecimal.
-   The final format of the number is intended to be compatible with wmctrl.
-   E.g.: 0x12345678."
-  (let* ((cmd-r (run-cmd "xdotool getwindowfocus")))
-    (if (failed? cmd-r)
-      cmd-r
-      (new-r :success "" (format nil "0x~8,'0X"
-                                 (loose-parse-int (r-data cmd-r)))))))
-
 (defun list-monitors ()
   "Get a list of monitors from `xrandr --current` command. The `--current`
    option gets the current screen configuration without polling for hardware
@@ -211,36 +211,16 @@
 
 ;;; Public Functions -----------------------------------------------------------
 
-(defun go-to-workspace (num)
-  "Go to workspace number `num` (1-based index)."
-  (if (non-positive? num)
-    (return-from go-to-workspace (new-r :error
-                                        "Workspace must be a postive integer")))
-  ;; Don't save last active workspace it is the same as the target, `num`
-  (let* ((active-workspace (get-active-workspace-num)))
-    (if (not (= num active-workspace))
-      (save-active-workspace-num active-workspace)))
-  (run-cmd (sf "wmctrl -s ~A" (1- (as-safe-wmctrl-workspace-num num)))))
-
-(defun go-to-next-workspace ()
-  "Go to the next ordinal workspace."
-  (let* ((active-workspace-num (get-active-workspace-num))
-         (num-workspaces (get-workspace-count)))
-    (if (>= active-workspace-num num-workspaces)
-      (go-to-workspace 1)
-      (go-to-workspace (1+ active-workspace-num)))))
-
-(defun go-to-previous-workspace ()
-  "Go to the previous ordinal workspace."
-  (let* ((active-workspace-num (get-active-workspace-num)))
-    (if (= 1 active-workspace-num)
-      (go-to-workspace (get-workspace-count))
-      (go-to-workspace (1- active-workspace-num)))))
-
-(defun go-to-last-active-workspace ()
-  "Go to the workspace that was active last (like cycling to the last active
-   window using ALT-TAB)."
-  (go-to-workspace (get-last-active-workspace-num)))
+(defun show-windows ()
+  "Show windows across all workspaces."
+  (let* ((windows '()))
+    (dolist (window (list-windows))
+      (push (format nil
+                    "~A: ~A"
+                    (window-workspace-num window)
+                    (window-name window))
+            windows))
+    (new-r :success "Successfully listed windows" (nreverse windows))))
 
 (defun focus-window (pos)
   "Focus the window specified by the relative position, `pos` (i.e. up, down,
@@ -341,6 +321,37 @@
            (cmd (sf "wmctrl -i -a ~A" (window-id  window-to-focus))))
       (run-cmd cmd))))
 
+(defun go-to-workspace (num)
+  "Go to workspace number `num` (1-based index)."
+  (if (non-positive? num)
+    (return-from go-to-workspace (new-r :error
+                                        "Workspace must be a postive integer")))
+  ;; Don't save last active workspace it is the same as the target, `num`
+  (let* ((active-workspace (get-active-workspace-num)))
+    (if (not (= num active-workspace))
+      (save-active-workspace-num active-workspace)))
+  (run-cmd (sf "wmctrl -s ~A" (1- (as-safe-wmctrl-workspace-num num)))))
+
+(defun go-to-next-workspace ()
+  "Go to the next ordinal workspace."
+  (let* ((active-workspace-num (get-active-workspace-num))
+         (num-workspaces (get-workspace-count)))
+    (if (>= active-workspace-num num-workspaces)
+      (go-to-workspace 1)
+      (go-to-workspace (1+ active-workspace-num)))))
+
+(defun go-to-previous-workspace ()
+  "Go to the previous ordinal workspace."
+  (let* ((active-workspace-num (get-active-workspace-num)))
+    (if (= 1 active-workspace-num)
+      (go-to-workspace (get-workspace-count))
+      (go-to-workspace (1- active-workspace-num)))))
+
+(defun go-to-last-active-workspace ()
+  "Go to the workspace that was active last (like cycling to the last active
+   window using ALT-TAB)."
+  (go-to-workspace (get-last-active-workspace-num)))
+
 (defun show-monitors ()
   "Show connected monitors."
   (let* ((monitors '()))
@@ -351,7 +362,8 @@
                     (monitor-width monitor)
                     (monitor-height monitor)
                     (monitor-x-offset monitor)
-                    (monitor-y-offset monitor)) monitors))
+                    (monitor-y-offset monitor))
+            monitors))
     (new-r :success "Successfully listed monitors" (nreverse monitors))))
 
 ;;; Public Functions ===========================================================

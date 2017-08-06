@@ -28,13 +28,14 @@ snav is a window, workspace and monitor navigator for X
 
 Commands:
 
-  show [monitors]
-    The 'monitors' command shows connected monitors
+  show [win[dows] | mon[itors]]
+    'windows' shows visible windows across all workspaces
+    'monitors' shows connected monitors
 
-  workspace [<NUM> | prev | next | last]
+  workspace [<NUM> | prev[ious] | next | last]
     <NUM> should be a positive integer
-    The 'prev' and 'next' commands wrap to the last and first workspace
-    The 'last' command goes to the last viewed workspace
+    'previous' and 'next' wrap to the last and first workspace
+    'last' goes to the last viewed workspace
 
   focus [up | down | left | right]
     Focus the window specified by a relative position
@@ -83,10 +84,13 @@ Options:
          (when (empty? (second args))
            (format t "The 'show' command requires an argument. See 'snav help'.~%")
            (return-from main 1))
-         (if (string-equal "monitors" (second args))
+         (if (starts-with "win" (second args))
+             (let* ((windows-cmd-r (show-windows)))
+               (format t "~{~A~^~%~}" (r-data windows-cmd-r))
+               (return-from main (handle-snav-cmd-r windows-cmd-r))))
+         (if (starts-with "mon" (second args))
              (let* ((monitors-cmd-r (show-monitors)))
-               (dolist (monitor (r-data monitors-cmd-r))
-                 (format t "~A~%" monitor))
+               (format t "~{~A~^~%~}" (r-data monitors-cmd-r))
                (return-from main (handle-snav-cmd-r monitors-cmd-r))))
          (format t
                  "snav: '~A' is not a recognised command. See 'snav help'.~%"

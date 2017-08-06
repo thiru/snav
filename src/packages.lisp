@@ -58,10 +58,11 @@
     :app-info-version
     :app-info-last-updated
     :*app-info*
+    :show-windows
+    :focus-window
     :go-to-workspace
     :go-to-next-workspace
     :go-to-previous-workspace
     :go-to-last-active-workspace
-    :focus-window
     :show-monitors
     ))
