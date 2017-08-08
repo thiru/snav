@@ -30,22 +30,6 @@ Just grab the snav executable from releases. See the *Config* section for comman
 
 I prefer to bind the snav commands to key-bindings via [sxhkd](https://github.com/baskerville/sxhkd). Here is a sample config:
 
-    # Go to a specific workspace
-    super + {1-9,0}
-      snav workspace '{1-9,10}'
-
-    # Go to the next workspace
-    super + ctrl + l
-      snav workspace next
-
-    # Go to the previous workspace
-    super + ctrl + h
-      snav workspace previous
-
-    # Go to last active workspace
-    super + grave
-      snav workspace last
-
     # Focus window up
     super + k
       snav focus up
@@ -61,6 +45,38 @@ I prefer to bind the snav commands to key-bindings via [sxhkd](https://github.co
     # Focus window to the right
     super + l
       snav focus right
+
+    # Move window to up monitor
+    super + alt + k
+      snav move up
+
+    # Move window to down monitor
+    super + alt + j
+      snav move down
+
+    # Move window to right monitor
+    super + alt + l
+      snav move right
+
+    # Move window to left monitor
+    super + alt + h
+      snav move left
+
+    # Go to a specific workspace
+    super + {1-9,0}
+      snav workspace '{1-9,10}'
+
+    # Go to the next workspace
+    super + ctrl + l
+      snav workspace next
+
+    # Go to the previous workspace
+    super + ctrl + h
+      snav workspace previous
+
+    # Go to last active workspace
+    super + grave
+      snav workspace last
 
 ## Building
 
