@@ -160,6 +160,23 @@
 (defmacro negative? (num)
   "Determine whether `num` is a negative number."
   `(>= -1 ,num))
+
+(defun next-item-idx (curr-item-idx all-items &key (direction 'right))
+  "Get the index of the next item.
+   `curr-item-idx` specifies the 0-based index of the current item.
+   `all-items` is either a list or the length of a list.
+   `direction` can be left/up or right/down."
+  (let* ((list-len (if (listp all-items)
+                       (length all-items)
+                       all-items)))
+    (if (or (string-equal 'right direction)
+            (string-equal 'down direction))
+        (if (>= curr-item-idx (1- list-len))
+            0
+            (1+ curr-item-idx))
+        (if (zerop curr-item-idx)
+            (1- list-len)
+            (1- curr-item-idx)))))
 ;;; Generic Utils --------------------------------------------------------------
 
 ;;; Empty

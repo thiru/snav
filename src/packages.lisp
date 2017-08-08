@@ -45,6 +45,7 @@
     :non-negative?
     :negative?
     :starts-with
+    :next-item-idx
     ))
 
 (defpackage :snav
@@ -60,6 +61,7 @@
     :*app-info*
     :show-windows
     :focus-window
+    :move-window
     :show-workspaces
     :go-to-workspace
     :go-to-next-workspace

@@ -33,13 +33,16 @@ Commands:
     'workspaces' show all workspaces
     'monitors' shows connected monitors
 
+  focus [up | down | left | right]
+    Focus the window specified by a relative position
+
+  move [up | down | left | right]
+    Move the active window to the monitor in the specified direction
+
   workspace [<NUM> | prev[ious] | next | last]
     <NUM> should be a positive integer
     'previous' and 'next' wrap to the last and first workspace
     'last' goes to the last viewed workspace
-
-  focus [up | down | left | right]
-    Focus the window specified by a relative position
 
   help, --help, -h
     Show this message
@@ -102,6 +105,20 @@ Options:
                  (second args))
          (return-from main 1))
 
+        ;; Window focusing
+        ((string-equal "focus" (first args))
+         (when (empty? (second args))
+           (format t "The 'focus' command requires an argument. See 'snav help'.~%")
+           (return-from main 1))
+         (return-from main (handle-snav-cmd-r (focus-window (second args)))))
+
+        ;; Window moving between monitors
+        ((string-equal "move" (first args))
+         (when (empty? (second args))
+           (format t "The 'move' command requires an argument. See 'snav help'.~%")
+           (return-from main 1))
+         (return-from main (handle-snav-cmd-r (move-window (second args)))))
+
         ;; Workspaces navigation
         ((string-equal "workspace" (first args))
          (when (empty? (second args))
@@ -117,12 +134,7 @@ Options:
                       (handle-snav-cmd-r
                         (go-to-workspace (loose-parse-int (second args))))))
 
-        ;; Window focusing
-        ((string-equal "focus" (first args))
-         (when (empty? (second args))
-           (format t "The 'focus' command requires an argument. See 'snav help'.~%")
-           (return-from main 1))
-         (return-from main (handle-snav-cmd-r (focus-window (second args)))))
+        ;; Illegal command
         ((not (empty? args))
          (format t
                  "snav: '~A' is not a recognised command. See 'snav help'.~%"

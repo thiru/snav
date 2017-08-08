@@ -108,6 +108,36 @@
       (new-r :success "" (format nil "0x~8,'0X"
                                  (loose-parse-int (r-data cmd-r)))))))
 
+(defun window-in-monitor? (window monitor)
+  "Determine whether `window` is in `monitor`. This is defined as the top-left
+   corner of the window residing within the monitor."
+  (and (>= (window-x-offset window)
+           (monitor-x-offset monitor))
+       (<= (window-x-offset window)
+           (+ (monitor-x-offset monitor)
+              (monitor-width monitor)))
+       (>= (window-y-offset window)
+           (monitor-y-offset monitor))
+       (<= (window-y-offset window)
+           (+ (monitor-y-offset monitor)
+              (monitor-height monitor)))))
+
+(defun correct-window-x-offset-snap (x-offset monitor)
+  "Account for minor discrepancies in x offset when moving windows between
+   monitors. We state that if the window is within 3 pixels of the edge of the
+   monitor, than we snap it to that edge."
+  (if (>= 3 (abs (- x-offset (monitor-x-offset monitor))))
+      (monitor-x-offset monitor)
+      x-offset))
+
+(defun correct-window-y-offset-snap (y-offset monitor)
+  "Account for minor discrepancies in y offset when moving windows between
+   monitors. We state that if the window is within 3 pixels of the edge of the
+   monitor, than we snap it to that edge."
+  (if (>= 3 (abs (- y-offset (monitor-y-offset monitor))))
+      (monitor-y-offset monitor)
+      y-offset))
+
 (defun as-safe-workspace-num (num)
   (max 1 (or num 1)))
 
@@ -228,9 +258,8 @@
             windows))
     (new-r :success "Successfully listed windows" (nreverse windows))))
 
-(defun focus-window (pos)
-  "Focus the window specified by the relative position, `pos` (i.e. up, down,
-   left, right)."
+(defun focus-window (direction)
+  "Focus the window specified by the direction (i.e. up, down, left, right)."
   (let* ((get-focused-window-id-r (get-focused-window-id))
          (focused-window-id "")
          (focused-window nil)
@@ -246,7 +275,7 @@
     (setf curr-workspace (get-active-workspace-num))
 
     (cond (;; Focus UP window 
-           (string-equal "up" pos)
+           (string-equal "up" direction)
            (setf windows
                  (stable-sort (list-windows :workspace curr-workspace)
                               #'<
@@ -263,7 +292,7 @@
                    (1- focused-window-position))))
 
           ;; Focus DOWN window
-          ((string-equal "down" pos)
+          ((string-equal "down" direction)
            (setf windows
                  (stable-sort (list-windows :workspace curr-workspace)
                               #'<
@@ -280,7 +309,7 @@
                    (1+ focused-window-position))))
 
           ;; Focus LEFT window 
-          ((string-equal "left" pos)
+          ((string-equal "left" direction)
            (setf windows
                  (stable-sort (list-windows :workspace curr-workspace)
                               #'<
@@ -297,7 +326,7 @@
                    (1- focused-window-position))))
 
           ;; Focus RIGHT window
-          ((string-equal "right" pos)
+          ((string-equal "right" direction)
            (setf windows
                  (stable-sort (list-windows :workspace curr-workspace)
                               #'<
@@ -316,7 +345,7 @@
           (t (return-from
                focus-window
                (new-r :error
-                      (sf "Unrecognised relative window position '~A'" pos)))))
+                      (sf "Unrecognised window direction '~A'" direction)))))
 
     (if (negative? position-of-window-to-focus)
       (return-from
@@ -326,6 +355,98 @@
     (let* ((window-to-focus (nth position-of-window-to-focus windows))
            (cmd (sf "wmctrl -i -a ~A" (window-id  window-to-focus))))
       (run-cmd cmd))))
+
+(defun move-window (direction)
+  "Move the window to the monitor in the specified direction."
+  (let* ((monitors (list-monitors))
+         (get-focused-window-id-r nil)
+         (focused-window-id "")
+         (focused-window nil)
+         (curr-mon nil)
+         (next-mon nil)
+         (new-x-pos -1)
+         (new-y-pos -1))
+
+    (if (empty? monitors)
+        (return-from
+          move-window
+          (new-r :success "Only one monitor so not moving window")))
+
+    (setf get-focused-window-id-r (get-focused-window-id))
+
+    (if (failed? get-focused-window-id-r)
+      (return-from move-window get-focused-window-id-r))
+
+    (setf focused-window-id (r-data get-focused-window-id-r))
+
+    (setf focused-window
+          (find focused-window-id
+                (list-windows)
+                :key #'window-id
+                :test #'string-equal))
+
+    (if (empty? focused-window)
+        (return-from
+          move-window
+          (new-r :error
+                 (sf "Failed to determine focused window (id ~A)"
+                     focused-window-id))))
+
+    (cond (;; Move window UP/DOWN
+           (or (string-equal 'up direction)
+               (string-equal 'down direction))
+           (setf monitors (stable-sort monitors #'< :key #'monitor-y-offset))
+           (loop :for monitor in monitors
+                 :for i :from 0
+                 :when (window-in-monitor? focused-window monitor)
+                 :do
+                 (setf curr-mon monitor)
+                 (setf next-mon (nth (next-item-idx i
+                                                    monitors
+                                                    :direction direction)
+                                     monitors))
+                 (if (not (= (monitor-y-offset curr-mon)
+                             (monitor-y-offset next-mon)))
+                     (setf new-y-pos
+                           (correct-window-y-offset-snap
+                             (+ (monitor-y-offset next-mon)
+                                (- (window-y-offset focused-window)
+                                   (monitor-y-offset curr-mon)))
+                             next-mon)))))
+
+          ;; Move window LEFT/RIGHT
+          ((or (string-equal 'left direction)
+               (string-equal 'right direction))
+           (setf monitors (stable-sort monitors #'< :key #'monitor-x-offset))
+           (loop :for monitor in monitors
+                 :for i :from 0
+                 :when (window-in-monitor? focused-window monitor)
+                 :do
+                 (setf curr-mon monitor)
+                 (setf next-mon (nth (next-item-idx i
+                                                    monitors
+                                                    :direction direction)
+                                     monitors))
+                 (if (not (= (monitor-x-offset curr-mon)
+                             (monitor-x-offset next-mon)))
+                     (setf new-x-pos (correct-window-x-offset-snap
+                                       (+ (monitor-x-offset next-mon)
+                                          (- (window-x-offset focused-window)
+                                             (monitor-x-offset curr-mon)))
+                                       next-mon)))))
+
+          ;; Illegal argument
+          (t (return-from
+               move-window
+               (new-r :error
+                      (sf "Unrecognised window direction '~A'" direction)))))
+
+    (if (or (non-negative? new-x-pos)
+            (non-negative? new-y-pos))
+        (run-cmd (sf "wmctrl -r :ACTIVE: -e 0,~A,~A,-1,-1" new-x-pos new-y-pos))
+        (new-r :success
+               (sf "No valid monitor in direction '~A' to move to."
+                   direction)))))
 
 (defun show-workspaces ()
   "Show workspaces."
