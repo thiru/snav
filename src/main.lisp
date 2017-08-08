@@ -108,6 +108,39 @@
       (new-r :success "" (format nil "0x~8,'0X"
                                  (loose-parse-int (r-data cmd-r)))))))
 
+(defun window-maximised? (id)
+  "Determine whether the window with the specified id is maximized
+   (horizontally and vertically)."
+  (if (empty? id)
+      (return-from
+        window-maximised?
+        (new-r :error "No window id specified.")))
+
+  (let* ((cmd-r (run-cmd (sf "xwininfo -wm -id ~A" id)))
+         (cmd-output-lines '())
+         (maximised-horz? nil)
+         (maximised-vert? nil))
+
+    (if (failed? cmd-r)
+        (return-from
+          window-maximised?
+          cmd-r))
+
+    (setf cmd-output-lines (split-sequence #\linefeed (r-data cmd-r)))
+
+    (loop :for line in cmd-output-lines
+          :for i :from 0
+          :when (starts-with "Maximized " (trim #\space line))
+          :do
+          (if (string-equal "Maximized Horz" (trim #\space line))
+              (setf maximised-horz? t))
+          (if (string-equal "Maximized Vert" (trim #\space line))
+              (setf maximised-vert? t)))
+    
+    (if (and maximised-horz? maximised-vert?)
+        (new-r :success "Yes" t)
+        (new-r :success "No" nil))))
+
 (defun window-in-monitor? (window monitor)
   "Determine whether `window` is in `monitor`. This is defined as the top-left
    corner of the window residing within the monitor."
@@ -365,7 +398,8 @@
          (curr-mon nil)
          (next-mon nil)
          (new-x-pos -1)
-         (new-y-pos -1))
+         (new-y-pos -1)
+         (maximised-check-r nil))
 
     (if (empty? monitors)
         (return-from
@@ -443,7 +477,14 @@
 
     (if (or (non-negative? new-x-pos)
             (non-negative? new-y-pos))
-        (run-cmd (sf "wmctrl -r :ACTIVE: -e 0,~A,~A,-1,-1" new-x-pos new-y-pos))
+        (progn
+          (setf maximised-check-r (window-maximised? focused-window-id))
+          (run-cmd (sf "wmctrl -r :ACTIVE: -e 0,~A,~A,-1,-1" new-x-pos new-y-pos))
+          (if (failed? maximised-check-r)
+              (return-from move-window maximised-check-r)
+              (if (r-data maximised-check-r)
+                  (run-cmd (join "wmctrl -r :ACTIVE: "
+                                 "-b add,maximized_vert,maximized_horz")))))
         (new-r :success
                (sf "No valid monitor in direction '~A' to move to."
                    direction)))))
