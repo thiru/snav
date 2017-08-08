@@ -11,11 +11,10 @@ Perhaps my favourite thing about tiling window managers is how easy it is to tra
 ## Features
 
 * Navigate to a specific workspace (by number)
-* Navigate to a workspace by relative position (left, right)
+* Navigate to a workspace by relative direction (left, right)
 * Navigate to the last viewed workspace
-* Focus a window by relative position (up, down, left, right)
-* Focus a specific monitor (by number) *NOT YET IMPLEMENTED*
-* Focus a monitor by relative position (up, down, left, right) *NOT YET IMPLEMENTED*
+* Focus a window by relative direction (up, down, left, right)
+* Move window to window in relative direction (up, down, left, right)
 
 ## Requirements
 
