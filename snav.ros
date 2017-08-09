@@ -38,6 +38,7 @@ Commands:
 
   move [up | down | left | right]
     Move the active window to the monitor in the specified direction
+    The mouse is also moved to the top-left corner of the active window
 
   workspace [<NUM> | prev[ious] | next | last]
     <NUM> should be a positive integer

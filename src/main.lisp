@@ -171,6 +171,16 @@
       (monitor-y-offset monitor)
       y-offset))
 
+(defun move-mouse (x y &key window)
+  "Move the mouse to the specified coorindates.
+   If `window` is specified the coordinates are relative to the window, with
+   0,0 being the top-left corner of the window. Otherwise the coordinates are
+   relative to the entire screen (which may encompass all monitors)."
+  (if (empty? window)
+      (run-cmd (sf "xdotool mousemove ~A ~A" x y))
+      (run-cmd (sf "xdotool mousemove --window ~A ~A ~A"
+                   (window-id window) x y))))
+
 (defun as-safe-workspace-num (num)
   (max 1 (or num 1)))
 
@@ -390,7 +400,8 @@
       (run-cmd cmd))))
 
 (defun move-window (direction)
-  "Move the window to the monitor in the specified direction."
+  "Move the window to the monitor in the specified direction. The mouse is also
+   moved to top-left corner of the focused window."
   (let* ((monitors (list-monitors))
          (get-focused-window-id-r nil)
          (focused-window-id "")
@@ -475,11 +486,13 @@
                (new-r :error
                       (sf "Unrecognised window direction '~A'" direction)))))
 
+    ;; Do we have valid x, y coordinates?
     (if (or (non-negative? new-x-pos)
             (non-negative? new-y-pos))
         (progn
           (setf maximised-check-r (window-maximised? focused-window-id))
           (run-cmd (sf "wmctrl -r :ACTIVE: -e 0,~A,~A,-1,-1" new-x-pos new-y-pos))
+          (move-mouse 0 0 :window focused-window)
           (if (failed? maximised-check-r)
               (return-from move-window maximised-check-r)
               (if (r-data maximised-check-r)
