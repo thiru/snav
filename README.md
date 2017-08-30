@@ -20,7 +20,8 @@ Perhaps my favourite thing about tiling window managers is how easy it is to tra
 
 * wmctrl
 * [xdotool](https://github.com/jordansissel/xdotool)
-* Common Lisp
+* xprop (Xorg util)
+* xwininfo (Xorg util)
 
 ## Running
 
