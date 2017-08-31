@@ -64,7 +64,7 @@ Options:
 (defun handle-snav-cmd-r (result)
   (if (failed? result)
     (progn
-      (format t "~A~%" (r-message result))
+      (format t "~A~%" (-> result :message))
       2)
     0))
 
@@ -91,15 +91,15 @@ Options:
            (return-from main 1))
          (if (starts-with "win" (second args))
              (let* ((windows-cmd-r (show-windows)))
-               (format t "~{~A~^~%~}" (r-data windows-cmd-r))
+               (format t "~{~A~^~%~}" (-> windows-cmd-r :data))
                (return-from main (handle-snav-cmd-r windows-cmd-r))))
          (if (starts-with "work" (second args))
              (let* ((workspaces-cmd-r (show-workspaces)))
-               (format t "~{~A~^~%~}" (r-data workspaces-cmd-r))
+               (format t "~{~A~^~%~}" (-> workspaces-cmd-r :data))
                (return-from main (handle-snav-cmd-r workspaces-cmd-r))))
          (if (starts-with "mon" (second args))
              (let* ((monitors-cmd-r (show-monitors)))
-               (format t "~{~A~^~%~}" (r-data monitors-cmd-r))
+               (format t "~{~A~^~%~}" (-> monitors-cmd-r :data))
                (return-from main (handle-snav-cmd-r monitors-cmd-r))))
          (format t
                  "snav: '~A' is not a recognised command. See 'snav help'.~%"

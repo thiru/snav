@@ -8,8 +8,11 @@
   :author "Thirushanth Thirunavukarasu <thiru0130@gmail.com>"
   :license "GPLv3"
   :serial t
-  :depends-on (:alexandria :cffi :cl-ppcre :local-time :split-sequence :uiop)
-  :components ((:file "src/packages")
-               (:file "src/glu")
+  :depends-on (:alexandria :cffi :cl-annot :cl-ppcre :local-time :split-sequence :uiop)
+  :components ((:file "src/glu/core")
+               (:file "src/glu/map")
+               (:file "src/glu/empty")
+               (:file "src/glu/validation")
+               (:file "src/glu/terminal")
                (:file "src/main")
                ))

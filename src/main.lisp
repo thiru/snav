@@ -1,3 +1,25 @@
+(defpackage :snav
+  (:use :cl :glu :local-time :split-sequence :uiop)
+  (:documentation "Sole package of 'screen navigator'")
+  (:export
+    :app-info
+    :app-info-name
+    :app-info-debug-mode?
+    :app-info-app-dir
+    :app-info-version
+    :app-info-last-updated
+    :*app-info*
+    :show-windows
+    :focus-window
+    :move-window
+    :show-workspaces
+    :go-to-workspace
+    :go-to-next-workspace
+    :go-to-previous-workspace
+    :go-to-last-active-workspace
+    :show-monitors
+    ))
+
 (in-package :snav)
 
 ;;; Structs --------------------------------------------------------------------
@@ -71,7 +93,7 @@
     (if (succeeded? list-windows-cmd-r)
       (progn
         (setf cmd-output-lines
-              (split-sequence #\linefeed (r-data list-windows-cmd-r)))
+              (split-sequence #\linefeed (-> list-windows-cmd-r :data)))
         (dolist (line cmd-output-lines)
           (setf curr-line-segs (cl-ppcre:split "\\s+" line))
           (when (<= 9 (length curr-line-segs))
@@ -105,8 +127,8 @@
   (let* ((cmd-r (run-cmd "xdotool getwindowfocus")))
     (if (failed? cmd-r)
       cmd-r
-      (new-r :success "" (format nil "0x~8,'0X"
-                                 (loose-parse-int (r-data cmd-r)))))))
+      (r=> :success "" (format nil "0x~8,'0X"
+                               (loose-parse-int (-> cmd-r :data)))))))
 
 (defun window-maximised? (id)
   "Determine whether the window with the specified id is maximized
@@ -114,7 +136,7 @@
   (if (empty? id)
       (return-from
         window-maximised?
-        (new-r :error "No window id specified.")))
+        (r=> :error "No window id specified.")))
 
   (let* ((cmd-r (run-cmd (sf "xwininfo -wm -id ~A" id)))
          (cmd-output-lines '())
@@ -126,20 +148,20 @@
           window-maximised?
           cmd-r))
 
-    (setf cmd-output-lines (split-sequence #\linefeed (r-data cmd-r)))
+    (setf cmd-output-lines (split-sequence #\linefeed (-> cmd-r :data)))
 
     (loop :for line in cmd-output-lines
           :for i :from 0
-          :when (starts-with "Maximized " (trim #\space line))
+          :when (starts-with "Maximized " (trim line))
           :do
-          (if (string-equal "Maximized Horz" (trim #\space line))
+          (if (string-equal "Maximized Horz" (trim line))
               (setf maximised-horz? t))
-          (if (string-equal "Maximized Vert" (trim #\space line))
+          (if (string-equal "Maximized Vert" (trim line))
               (setf maximised-vert? t)))
     
     (if (and maximised-horz? maximised-vert?)
-        (new-r :success "Yes" t)
-        (new-r :success "No" nil))))
+        (r=> :success "Yes" t)
+        (r=> :success "No" nil))))
 
 (defun window-in-monitor? (window monitor)
   "Determine whether `window` is in `monitor`. This is defined as the top-left
@@ -191,13 +213,13 @@
   (let* ((cmd-r (run-cmd "xprop -root -notype _NET_CURRENT_DESKTOP")))
     (if (succeeded? cmd-r)
       (as-safe-workspace-num
-        (1+ (loose-parse-int (last1 (split-string (r-data cmd-r)))))))))
+        (1+ (loose-parse-int (last1 (split-string (-> cmd-r :data)))))))))
 
 (defun get-workspace-count ()
   "Get the total number of workspaces."
   (let* ((cmd-r (run-cmd "xprop -root -notype _NET_NUMBER_OF_DESKTOPS")))
     (if (succeeded? cmd-r)
-      (loose-parse-int (last1 (split-string (r-data cmd-r)))))))
+      (loose-parse-int (last1 (split-string (-> cmd-r :data)))))))
 
 ;; NOTE: Not currently being used
 (defun list-workspaces ()
@@ -211,7 +233,7 @@
     (if (succeeded? list-workspaces-cmd-r)
       (progn
         (setf cmd-output-lines
-              (split-sequence #\linefeed (r-data list-workspaces-cmd-r)))
+              (split-sequence #\linefeed (-> list-workspaces-cmd-r :data)))
         (dolist (line cmd-output-lines)
           (setf curr-workspace-num
                 (1+ (loose-parse-int (cl-ppcre:scan-to-strings "^\\d+" line))))
@@ -259,7 +281,7 @@
     (if (succeeded? list-monitors-cmd-r)
         (progn
           (setf cmd-output-lines
-                (split-sequence #\linefeed (r-data list-monitors-cmd-r)))
+                (split-sequence #\linefeed (-> list-monitors-cmd-r :data)))
           (dolist (line cmd-output-lines)
             (multiple-value-bind
               (whole-match sub-matches)
@@ -293,13 +315,13 @@
                     "~A ~A ~A"
                     (window-workspace-num window)
                     (if (and (succeeded? focused-win-cmd-r)
-                             (string-equal (r-data focused-win-cmd-r)
+                             (string-equal (-> focused-win-cmd-r :data)
                                            (window-id window)))
                         "*"
                         "-")
                     (window-name window))
             windows))
-    (new-r :success "Successfully listed windows" (nreverse windows))))
+    (r=> :success "Successfully listed windows" (nreverse windows))))
 
 (defun focus-window (direction)
   "Focus the window specified by the direction (i.e. up, down, left, right)."
@@ -314,7 +336,7 @@
     (if (failed? get-focused-window-id-r)
       (return-from focus-window get-focused-window-id-r))
 
-    (setf focused-window-id (r-data get-focused-window-id-r))
+    (setf focused-window-id (-> get-focused-window-id-r :data))
     (setf curr-workspace (get-active-workspace-num))
 
     (cond (;; Focus UP window 
@@ -387,13 +409,13 @@
           ;; Illegal argument
           (t (return-from
                focus-window
-               (new-r :error
-                      (sf "Unrecognised window direction '~A'" direction)))))
+               (r=> :error
+                    (sf "Unrecognised window direction '~A'" direction)))))
 
     (if (negative? position-of-window-to-focus)
       (return-from
         focus-window
-        (new-r :error "Failed to determine position of window to focus.")))
+        (r=> :error "Failed to determine position of window to focus.")))
 
     (let* ((window-to-focus (nth position-of-window-to-focus windows))
            (cmd (sf "wmctrl -i -a ~A" (window-id  window-to-focus))))
@@ -415,14 +437,14 @@
     (if (empty? monitors)
         (return-from
           move-window
-          (new-r :success "Only one monitor so not moving window")))
+          (r=> :success "Only one monitor so not moving window")))
 
     (setf get-focused-window-id-r (get-focused-window-id))
 
     (if (failed? get-focused-window-id-r)
       (return-from move-window get-focused-window-id-r))
 
-    (setf focused-window-id (r-data get-focused-window-id-r))
+    (setf focused-window-id (-> get-focused-window-id-r :data))
 
     (setf focused-window
           (find focused-window-id
@@ -433,9 +455,9 @@
     (if (empty? focused-window)
         (return-from
           move-window
-          (new-r :error
-                 (sf "Failed to determine focused window (id ~A)"
-                     focused-window-id))))
+          (r=> :error
+               (sf "Failed to determine focused window (id ~A)"
+                   focused-window-id))))
 
     (cond (;; Move window UP/DOWN
            (or (string-equal 'up direction)
@@ -483,8 +505,8 @@
           ;; Illegal argument
           (t (return-from
                move-window
-               (new-r :error
-                      (sf "Unrecognised window direction '~A'" direction)))))
+               (r=> :error
+                    (sf "Unrecognised window direction '~A'" direction)))))
 
     ;; Do we have valid x, y coordinates?
     (if (or (non-negative? new-x-pos)
@@ -495,12 +517,12 @@
           (move-mouse 0 0 :window focused-window)
           (if (failed? maximised-check-r)
               (return-from move-window maximised-check-r)
-              (if (r-data maximised-check-r)
+              (if (-> maximised-check-r :data)
                   (run-cmd (join "wmctrl -r :ACTIVE: "
                                  "-b add,maximized_vert,maximized_horz")))))
-        (new-r :success
-               (sf "No valid monitor in direction '~A' to move to."
-                   direction)))))
+        (r=> :success
+             (sf "No valid monitor in direction '~A' to move to."
+                 direction)))))
 
 (defun show-workspaces ()
   "Show workspaces."
@@ -512,13 +534,13 @@
                     (if (workspace-active? workspace) "*" "-")
                     (workspace-name workspace))
             workspaces))
-    (new-r :success "Successfully listed workspaces" (nreverse workspaces))))
+    (r=> :success "Successfully listed workspaces" (nreverse workspaces))))
 
 (defun go-to-workspace (num)
   "Go to workspace number `num` (1-based index)."
   (if (non-positive? num)
-    (return-from go-to-workspace (new-r :error
-                                        "Workspace must be a postive integer")))
+    (return-from go-to-workspace (r=> :error
+                                      "Workspace must be a postive integer")))
   ;; Don't save last active workspace it is the same as the target, `num`
   (let* ((active-workspace (get-active-workspace-num)))
     (if (not (= num active-workspace))
@@ -557,6 +579,6 @@
                     (monitor-x-offset monitor)
                     (monitor-y-offset monitor))
             monitors))
-    (new-r :success "Successfully listed monitors" (nreverse monitors))))
+    (r=> :success "Successfully listed monitors" (nreverse monitors))))
 
 ;;; Public Functions ===========================================================
