@@ -17,8 +17,8 @@
     :go-to-next-workspace
     :go-to-previous-workspace
     :go-to-last-active-workspace
-    :show-monitors
-    ))
+    :show-monitors))
+    
 
 (in-package :snav)
 
@@ -49,6 +49,7 @@
 
 (defstruct monitor
   (id "" :type string)
+  (primary? nil)
   (width 0 :type integer)
   (height 0 :type integer)
   (x-offset 0 :type integer)
@@ -286,19 +287,22 @@
             (multiple-value-bind
               (whole-match sub-matches)
               (cl-ppcre:scan-to-strings
-                "^(\\S+) connected (\\d+)x(\\d+)\\+(\\d+)\\+(\\d+)"
+                "^(\\S+) connected (primary )?(\\d+)x(\\d+)\\+(\\d+)\\+(\\d+)"
                 line)
               (declare (ignore whole-match))
-              (when (= 5 (length sub-matches))
+              (when (<= 6 (length sub-matches))
                 (push (make-monitor :id (aref sub-matches 0)
+                                    :primary?
+                                    (string-equal "primary"
+                                                  (trim (aref sub-matches 1)))
                                     :width
-                                    (loose-parse-int (aref sub-matches 1))
-                                    :height
                                     (loose-parse-int (aref sub-matches 2))
-                                    :x-offset
+                                    :height
                                     (loose-parse-int (aref sub-matches 3))
+                                    :x-offset
+                                    (loose-parse-int (aref sub-matches 4))
                                     :y-offset
-                                    (loose-parse-int (aref sub-matches 4)))
+                                    (loose-parse-int (aref sub-matches 5)))
                       monitors))))))
     (nreverse monitors)))
 
@@ -572,12 +576,13 @@
   (let* ((monitors '()))
     (dolist (monitor (list-monitors))
       (push (format nil
-                    "~A ~Ax~A +~A,~A"
+                    "~A ~Ax~A +~A,~A~A"
                     (monitor-id monitor)
                     (monitor-width monitor)
                     (monitor-height monitor)
                     (monitor-x-offset monitor)
-                    (monitor-y-offset monitor))
+                    (monitor-y-offset monitor)
+                    (if (monitor-primary? monitor) " (primary)" ""))
             monitors))
     (r=> :success "Successfully listed monitors" (nreverse monitors))))
 
