@@ -1,23 +1,23 @@
 (defpackage :snav
-  (:use :cl :glu :local-time :split-sequence :uiop)
-  (:documentation "Sole package of 'screen navigator'")
-  (:export
-    :app-info
-    :app-info-name
-    :app-info-debug-mode?
-    :app-info-app-dir
-    :app-info-version
-    :app-info-last-updated
-    :*app-info*
-    :show-windows
-    :focus-window
-    :move-window
-    :show-workspaces
-    :go-to-workspace
-    :go-to-next-workspace
-    :go-to-previous-workspace
-    :go-to-last-active-workspace
-    :show-monitors))
+ (:use :cl :glu :local-time :split-sequence :uiop)
+ (:documentation "Sole package of 'screen navigator'")
+ (:export
+   :app-info
+   :app-info-name
+   :app-info-debug-mode?
+   :app-info-app-dir
+   :app-info-version
+   :app-info-last-updated
+   :*app-info*
+   :show-windows
+   :focus-window
+   :move-window
+   :show-workspaces
+   :go-to-workspace
+   :go-to-next-workspace
+   :go-to-previous-workspace
+   :go-to-last-active-workspace
+   :show-monitors))
     
 
 (in-package :snav)
@@ -167,16 +167,19 @@
 (defun window-in-monitor? (window monitor)
   "Determine whether `window` is in `monitor`. This is defined as the top-left
    corner of the window residing within the monitor."
-  (and (>= (window-x-offset window)
-           (monitor-x-offset monitor))
-       (<= (window-x-offset window)
-           (+ (monitor-x-offset monitor)
-              (monitor-width monitor)))
-       (>= (window-y-offset window)
-           (monitor-y-offset monitor))
-       (<= (window-y-offset window)
-           (+ (monitor-y-offset monitor)
-              (monitor-height monitor)))))
+  ;(format t "*** WIN/MON: ~A / ~A~%" window monitor)
+  (let* ((right? (>= (window-x-offset window)
+                     (monitor-x-offset monitor)))
+         (left? (< (window-x-offset window)
+                   (+ (monitor-x-offset monitor)
+                      (monitor-width monitor))))
+         (under? (>= (window-y-offset window)
+                     (monitor-y-offset monitor)))
+         (above? (< (window-y-offset window)
+                    (+ (monitor-y-offset monitor)
+                       (monitor-height monitor)))))
+    ;(format t "*** Right/Left/Under/Above: ~A/~A/~A/~A~%" right? left? under? above?)
+    (and right? left? under? above?)))
 
 (defun correct-window-x-offset-snap (x-offset monitor)
   "Account for minor discrepancies in x offset when moving windows between
@@ -456,6 +459,8 @@
                 :key #'window-id
                 :test #'string-equal))
 
+    ;(format t "*** FOCUSED WIN: ~A~%" focused-window)
+
     (if (empty? focused-window)
         (return-from
           move-window
@@ -463,6 +468,7 @@
                (sf "Failed to determine focused window (id ~A)"
                    focused-window-id))))
 
+    ;(format t "*** MOVING ~A~%" direction)
     (cond (;; Move window UP/DOWN
            (or (string-equal 'up direction)
                (string-equal 'down direction))
@@ -494,10 +500,12 @@
                  :when (window-in-monitor? focused-window monitor)
                  :do
                  (setf curr-mon monitor)
+                 ;(format t "*** WINDOW IS IN ~A~%" (monitor-id monitor))
                  (setf next-mon (nth (next-item-idx i
                                                     monitors
                                                     :direction direction)
                                      monitors))
+                 ;(format t "*** NEXT MON: ~A~%" (monitor-id next-mon))
                  (if (not (= (monitor-x-offset curr-mon)
                              (monitor-x-offset next-mon)))
                      (setf new-x-pos (correct-window-x-offset-snap
@@ -512,12 +520,20 @@
                (r=> :error
                     (sf "Unrecognised window direction '~A'" direction)))))
 
+    ;(format t "*** NEW X-POS: ~A~%" new-x-pos)
+
     ;; Do we have valid x, y coordinates?
     (if (or (non-negative? new-x-pos)
             (non-negative? new-y-pos))
-        (progn
+        (let* ((move-cmd (sf "wmctrl -r :ACTIVE: -e 0,~A,~A,-1,-1" new-x-pos new-y-pos)))
           (setf maximised-check-r (window-maximised? focused-window-id))
-          (run-cmd (sf "wmctrl -r :ACTIVE: -e 0,~A,~A,-1,-1" new-x-pos new-y-pos))
+          ;(format t "*** WIN MAXIMIZED? ~A~%" maximised-check-r)
+          ;; If the window is maximised, `wmctrl` won't move it unless we
+          ;; unmaximise it first
+          (if (-> maximised-check-r :data)
+            (run-cmd (sf "wmctrl -r :ACTIVE: -b remove,maximized_vert,maximized_horz")))
+          (run-cmd move-cmd)
+          ;(format t "*** MOVE CMD: ~A~%" move-cmd)
           (move-mouse 0 0 :window focused-window)
           (if (failed? maximised-check-r)
               (return-from move-window maximised-check-r)
