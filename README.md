@@ -1,5 +1,7 @@
 # snav
 
+**OBSOLETE** - replacing this project with [xnav](https://github.com/thiru/xnav) - a rewrite in Clojure.
+
 **snav** stands for screen navigator. It is a window, workspace and monitor navigator for X.
 
 The motivation for writing this app is so I could navigate windows, workspaces and monitors as easily as with tiling window managers like [i3](https://github.com/i3/i3), [bspwm](https://github.com/baskerville/bspwm), etc. but without having to use one.
